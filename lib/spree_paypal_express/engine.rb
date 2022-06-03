@@ -9,8 +9,8 @@ module SpreePaypalExpress
       g.test_framework :rspec
     end
 
-    initializer 'spree_paypal_express.environment', before: :load_config_initializers do |_app|
-      SpreePaypalExpress::Config = SpreePaypalExpress::Configuration.new
+    initializer "spree.paypal_express.payment_methods", :after => "spree.register.payment_methods" do |app|
+      app.config.spree.payment_methods << Spree::Gateway::PayPalExpress
     end
 
     def self.activate

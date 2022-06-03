@@ -8,8 +8,8 @@ Gem::Specification.new do |s|
   s.platform    = Gem::Platform::RUBY
   s.name        = 'spree_paypal_express'
   s.version     = SpreePaypalExpress.version
-  s.summary     = 'Add extension summary here'
-  s.description = 'Add (optional) extension description here'
+  s.summary     = 'Adds PayPal Express as a Payment Method to Spree Commerce'
+  s.description = s.summary
   s.required_ruby_version = '>= 2.5'
 
   s.author    = 'You'
@@ -20,8 +20,10 @@ Gem::Specification.new do |s|
   s.files       = `git ls-files`.split("\n").reject { |f| f.match(/^spec/) && !f.match(/^spec\/fixtures/) }
   s.require_path = 'lib'
   s.requirements << 'none'
-
-  s.add_dependency 'spree', '>= 4.3.0'
+  
+  s.add_dependency 'spree_core', '>= 3.1.0', '< 5.0'
+  # s.add_dependency 'spree', '>= 4.3.0'
+  s.add_dependency 'paypal-checkout-sdk', '~> 1.0', '>= 1.0.1'
   # s.add_dependency 'spree_backend' # uncomment to include Admin Panel changes
   s.add_dependency 'spree_extension'
 
