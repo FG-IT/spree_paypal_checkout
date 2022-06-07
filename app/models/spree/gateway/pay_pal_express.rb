@@ -49,8 +49,6 @@ module Spree
     def settle(amount, checkout, gateway_options) end
 
     def capture(amount, checkout, gateway_options)
-      payment = find_payment(gateway_options)
-
       request = ::PayPalCheckoutSdk::Orders::OrdersCaptureRequest::new(checkout.token)
       request.prefer("return=representation")
       #Below request bodyn can be updated with fields as per business need. Please refer API docs for more info.
@@ -69,6 +67,7 @@ module Spree
     end
 
     def purchase(amount, checkout, gateway_options = {})
+
       request = ::PayPalCheckoutSdk::Orders::OrdersCaptureRequest::new(checkout.token)
       request.prefer("return=representation")
       #Below request bodyn can be updated with fields as per business need. Please refer API docs for more info.
@@ -77,7 +76,7 @@ module Spree
         response = provider.execute(request)
         result = openstruct_to_hash(response)[:result]
         authorization_id = result[:purchase_units].first[:payments][:captures].first[:id]
-        payment.source.update(state: 'completed', transaction_id: authorization_id)
+        checkout.update(state: 'completed', transaction_id: authorization_id)
         return Response.new(true, nil, {:id => authorization_id})
       rescue PayPalHttp::HttpError => ioe
         # Exception occured while processing the refund.
@@ -182,6 +181,8 @@ module Spree
                                 :state => "refunded",
                                 :refund_type => refund_type
                               })
+        result = openstruct_to_hash(response)[:result]
+        return Response.new(true, nil, {:id => result[:id]})
       rescue PayPalHttp::HttpError => ioe
         # Exception occured while processing the refund.
         puts " Status Code: #{ioe.status_code}"
