@@ -30,8 +30,8 @@ module Spree
       @provider ||= provider_class.new(self.environment)
     end
 
-    def authorize(amount, express_checkout, gateway_options = {})
-      request = ::PayPalCheckoutSdk::Orders::OrdersAuthorizeRequest::new(order_id)
+    def authorize(amount, checkout, gateway_options = {})
+      request = ::PayPalCheckoutSdk::Orders::OrdersAuthorizeRequest::new(checkout.token)
       request.prefer("return=representation")
       # This request body can be updated with fields as per requirement. Please refer API docs for more info.
       request.request_body({})
@@ -49,9 +49,9 @@ module Spree
     def settle(amount, checkout, gateway_options) end
 
     def capture(amount, checkout, gateway_options)
-      paypal_order_id, payment = find_payment_and_paypal_order_id(gateway_options)
+      payment = find_payment(gateway_options)
 
-      request = ::PayPalCheckoutSdk::Orders::OrdersCaptureRequest::new(paypal_order_id)
+      request = ::PayPalCheckoutSdk::Orders::OrdersCaptureRequest::new(checkout.token)
       request.prefer("return=representation")
       #Below request bodyn can be updated with fields as per business need. Please refer API docs for more info.
       request.request_body({})
@@ -59,6 +59,7 @@ module Spree
         response = provider.execute(request)
         Spree::PaypalExpressCheckout.find_by(authorization_id: authorization_id).update(state: 'completed')
         return response
+        return Response.new(true, nil, {:id => new_transaction_id})
       rescue PayPalHttp::HttpError => ioe
         # Exception occured while processing the refund.
         logger.info  " Status Code: #{ioe.status_code}"
@@ -67,16 +68,17 @@ module Spree
       end
     end
 
-    def purchase(amount, express_checkout, gateway_options = {})
-      paypal_order_id, payment = find_payment_and_paypal_order_id(gateway_options)
-      request = ::PayPalCheckoutSdk::Orders::OrdersCaptureRequest::new(paypal_order_id)
+    def purchase(amount, checkout, gateway_options = {})
+      request = ::PayPalCheckoutSdk::Orders::OrdersCaptureRequest::new(checkout.token)
       request.prefer("return=representation")
       #Below request bodyn can be updated with fields as per business need. Please refer API docs for more info.
       request.request_body({})
       begin
         response = provider.execute(request)
-        Spree::PaypalExpressCheckout.find_by(authorization_id: authorization_id).update(state: 'completed')
-        return response
+        result = openstruct_to_hash(response)[:result]
+        authorization_id = result[:purchase_units].first[:payments][:captures].first[:id]
+        payment.source.update(state: 'completed', transaction_id: authorization_id)
+        return Response.new(true, nil, {:id => authorization_id})
       rescue PayPalHttp::HttpError => ioe
         # Exception occured while processing the refund.
         logger.info  " Status Code: #{ioe.status_code}"
@@ -105,8 +107,7 @@ module Spree
     end
 
     def void(response_code, _source, gateway_options)
-
-      paypal_order_id, payment = find_payment_and_paypal_order_id(gateway_options)
+      payment = find_payment(gateway_options)
       authorization_id, payment = find_payment_and_paypal_authorization_id(gateway_options)
       request = ::PayPalCheckoutSdk::Payments::AuthorizationsVoidRequest::new(authorization_id)
 
@@ -129,11 +130,10 @@ module Spree
       end
 
       void_transaction = provider.build_do_void({
-                                                    :AuthorizationID => source.transaction_id
+                                                  :AuthorizationID => source.transaction_id
                                                 })
 
       do_void_response = provider.do_void(void_transaction)
-
 
       if do_void_response.success?
         Spree::PaypalExpressCheckout.find_by(transaction_id: source.transaction_id).update(state: 'voided')
@@ -176,87 +176,35 @@ module Spree
 
       begin
         response = provider.execute(request)
-        if response.success?
-          payment.source.update({
-                                  :refunded_at => Time.now,
-                                  :refund_transaction_id => response.id,
-                                  :state => "refunded",
-                                  :refund_type => refund_type
-                                })
-        end
+        payment.source.update({
+                                :refunded_at => Time.now,
+                                :refund_transaction_id => response.id,
+                                :state => "refunded",
+                                :refund_type => refund_type
+                              })
       rescue PayPalHttp::HttpError => ioe
         # Exception occured while processing the refund.
         puts " Status Code: #{ioe.status_code}"
         puts " Debug Id: #{ioe.result.debug_id}"
         puts " Response: #{ioe.result}"
       end
-     
-      if refund_transaction_response.success?
-        payment.source.update({
-                                  :refunded_at => Time.now,
-                                  :refund_transaction_id => refund_transaction_response.RefundTransactionID,
-                                  :state => "refunded",
-                                  :refund_type => refund_type
-                              })
-      end
-      refund_transaction_response
     end
 
     private
 
-    def find_payment_and_paypal_order_id(gateway_options)
-      paypal_order_id = gateway_options[:order_id].split('-')[-1]
-      payment = Spree::Payment.find_by(number: paypal_order_id)
-      [paypal_order_id, payment]
-    end
-
-    def find_payment_and_paypal_authorization_id(gateway_options)
-      paypal_authorization_id = gateway_options[:order_id].split('-')[-1]
-      payment = Spree::Payment.find_by(number: paypal_order_id)
-      [paypal_authorization_id, payment]
-    end
-    
-    def sale(amount, express_checkout, payment_action, gateway_options = {})
-      pp_details_request = provider.build_get_express_checkout_details({
-                                                                          :Token => express_checkout.token
-                                                                      })
-      pp_details_response = provider.get_express_checkout_details(pp_details_request)
-
-      pp_request = provider.build_do_express_checkout_payment({
-                                                                  :DoExpressCheckoutPaymentRequestDetails => {
-                                                                      :PaymentAction => payment_action,
-                                                                      :Token => express_checkout.token,
-                                                                      :PayerID => express_checkout.payer_id,
-                                                                      :PaymentDetails => pp_details_response.get_express_checkout_details_response_details.PaymentDetails
-                                                                  }
-                                                              })
-
-      pp_response = provider.do_express_checkout_payment(pp_request)
-
-
-      if pp_response.success?
-        # We need to store the transaction id for the future.
-        # This is mainly so we can use it later on to refund the payment if the user wishes.
-        begin
-          transaction_id = pp_response.do_express_checkout_payment_response_details.payment_info.first.transaction_id
-        rescue
-          transaction_id = pp_response.do_express_checkout_payment_response_details.payment_info.transaction_id
-        end
-
-        express_checkout.update_column(:transaction_id, transaction_id)
-
-        Response.new(true, nil, {:id => transaction_id})
-
-      else
-        class << pp_response
-          def to_s
-            errors.map(&:long_message).join(" ")
-          end
-        end
-
-        Response.new(false, pp_response, nil)
-
+    def openstruct_to_hash(object, hash = {})
+      object.each_pair do |key, value|
+        hash[key] = value.is_a?(OpenStruct) ? openstruct_to_hash(value) : value.is_a?(Array) ? array_to_hash(value) : value
       end
+      hash
+    end
+
+    def array_to_hash(array, hash= [])
+      array.each do |item|
+        x = item.is_a?(OpenStruct) ? openstruct_to_hash(item) : item.is_a?(Array) ? array_to_hash(item) : item
+        hash << x
+      end
+      hash
     end
   end
 end
