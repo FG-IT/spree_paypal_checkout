@@ -37,7 +37,8 @@ module Spree
       request.request_body({})
       begin
         response = provider.execute(request)
-        
+        result = openstruct_to_hash(response)[:result]
+        return Response.new(true, nil, {:id => result[:id]})
       rescue PayPalHttp::HttpError => ioe
         # Exception occured while processing the refund.
         puts " Status Code: #{ioe.status_code}"
@@ -55,9 +56,10 @@ module Spree
       request.request_body({})
       begin
         response = provider.execute(request)
-        Spree::PaypalExpressCheckout.find_by(authorization_id: authorization_id).update(state: 'completed')
-        return response
-        return Response.new(true, nil, {:id => new_transaction_id})
+        result = openstruct_to_hash(response)[:result]
+        authorization_id = result[:purchase_units].first[:payments][:captures].first[:id]
+        checkout.update(state: 'completed', transaction_id: authorization_id)
+        return Response.new(true, nil, {:id => authorization_id})
       rescue PayPalHttp::HttpError => ioe
         # Exception occured while processing the refund.
         logger.info  " Status Code: #{ioe.status_code}"
@@ -106,54 +108,27 @@ module Spree
     end
 
     def void(response_code, _source, gateway_options)
-      payment = find_payment(gateway_options)
-      authorization_id, payment = find_payment_and_paypal_authorization_id(gateway_options)
-      request = ::PayPalCheckoutSdk::Payments::AuthorizationsVoidRequest::new(authorization_id)
 
-      #Below request bodyn can be updated with fields as per business need. Please refer API docs for more info.
-      request.request_body({})
-      begin
-        response = provider.execute(request)
-        Spree::PaypalExpressCheckout.find_by(transaction_id: source.transaction_id).update(state: 'voided')
-        return response
-      rescue PayPalHttp::HttpError => ioe
-        # Exception occured while processing the refund.
-        logger.info  " Status Code: #{ioe.status_code}"
-        logger.info  " Debug Id: #{ioe.result.debug_id}"
-        logger.info  " Response: #{ioe.result}"
-      end
       if _source.present?
         source = _source
       else
         source = Spree::PaypalExpressCheckout.find_by(token: response_code)
       end
+      authorization_id = source.transaction_id
+      request = ::PayPalCheckoutSdk::Payments::AuthorizationsVoidRequest::new(authorization_id)
 
-      void_transaction = provider.build_do_void({
-                                                  :AuthorizationID => source.transaction_id
-                                                })
+      #Below request bodyn can be updated with fields as per business need. Please refer API docs for more info.
 
-      do_void_response = provider.do_void(void_transaction)
-
-      if do_void_response.success?
-        Spree::PaypalExpressCheckout.find_by(transaction_id: source.transaction_id).update(state: 'voided')
-        # This is rather hackish, required for payment/processing handle_response code.
-        Class.new do
-          def success?
-            true;
-          end
-
-          def authorization
-            nil;
-          end
-        end.new
-      else
-        class << do_void_response
-          def to_s
-            errors.map(&:long_message).join(" ")
-          end
-        end
-
-        do_void_response
+      begin
+        response = provider.execute(request)
+        source.update(state: 'voided')
+        result = openstruct_to_hash(response)[:result]
+        return Response.new(true, nil, {:id => result[:id]})
+      rescue PayPalHttp::HttpError => ioe
+        # Exception occured while processing the refund.
+        logger.info  " Status Code: #{ioe.status_code}"
+        logger.info  " Debug Id: #{ioe.result.debug_id}"
+        logger.info  " Response: #{ioe.result}"
       end
     end
 
@@ -175,9 +150,10 @@ module Spree
 
       begin
         response = provider.execute(request)
+        result = openstruct_to_hash(response)[:result]
         payment.source.update({
                                 :refunded_at => Time.now,
-                                :refund_transaction_id => response.id,
+                                :refund_transaction_id => result[:id],
                                 :state => "refunded",
                                 :refund_type => refund_type
                               })

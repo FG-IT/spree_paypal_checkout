@@ -12,51 +12,6 @@ module Paypal
 
     attr_reader :redirect_uri, :popup_uri
 
-    def complete!(payer_id = nil)
-      if self.recurring?
-        response = client.subscribe!(self.token, recurring_request)
-        self.identifier = response.recurring.identifier
-      else
-        response = client.checkout!(self.token, payer_id, payment_request)
-        self.payer_id = payer_id
-        self.identifier = response.payment_info.first.transaction_id
-      end
-      self.completed = true
-      self.save!
-      self
-    end
-
-    def payment_method
-      # Spree::PaymentMethod.find(params[:payment_method_id])
-      Spree::PaymentMethod.find(8)
-    end
-
-    def client
-      payment_method.provider_express
-    end
-
-    DESCRIPTION = {
-      item: 'PayPal Express Sample Item',
-      instant: 'PayPal Express Sample Instant Payment',
-      recurring: 'PayPal Express Sample Recurring Payment'
-    }
-
-    def payment_request
-      item = {
-        name: DESCRIPTION[:item],
-        description: DESCRIPTION[:item],
-        amount: 10
-      }
-
-      request_attributes = {
-        amount: 10,
-        description: DESCRIPTION[:instant],
-        # items: [item]
-      }
-
-      ::Paypal::Payment::Request.new request_attributes
-    end
-
     def void_transaction!
       return true if void?
 

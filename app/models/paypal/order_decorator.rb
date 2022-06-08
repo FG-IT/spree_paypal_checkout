@@ -1,11 +1,9 @@
 module Paypal
   module OrderDecorator
 
-    DESCRIPTION = {
-      item: 'PayPal Express Sample Item',
-      instant: 'PayPal Express Sample Instant Payment',
-      recurring: 'PayPal Express Sample Recurring Payment'
-    }
+    def self.prepended(base)
+      base.has_many :paypal_checkouts, class_name: "Spree::PaypalExpressCheckout"
+    end
 
     def checkout_summary
       items = []
@@ -20,58 +18,60 @@ module Paypal
         }
       end
 
-      { purchase_units: [{
-        amount: {
-          currency_code: self.currency,
-          value: self.total,
-          breakdown: {
-            item_total: {  
-              currency_code: self.currency,
-              value: self.item_total
-            },
-            tax_total: {
-              currency_code: self.currency,
-              value: self.adjustment_total
-            },
-            shipping: {
-              currency_code: self.currency,
-              value: self.shipment_total
+      { purchase_units: 
+        [{
+          amount: {
+            currency_code: self.currency,
+            value: self.total,
+            breakdown: {
+              item_total: {  
+                currency_code: self.currency,
+                value: self.item_total
+              },
+              tax_total: {
+                currency_code: self.currency,
+                value: self.adjustment_total
+              },
+              shipping: {
+                currency_code: self.currency,
+                value: self.shipment_total
+              }
             }
-          }
-        },
-        items: items
-      }] }
+          },
+          items: items
+        }] 
+      }
     end
 
-    def add_shipping_address_from_paypal(response, permitted_attributes)
-      address = response.result.purchase_units.first.shipping.address
-      name = response.result.purchase_units.first.shipping.name
-      country_id = ::Spree::Country.find_by(iso: address.country_code).id
-      state_id = ::Spree::State.where({abbr: address.admin_area_1, country_id: country_id}).first.id
+    def add_shipping_address_from_paypal(result, permitted_attributes)
+      address = result[:purchase_units].first[:shipping][:address]
+      name = result[:purchase_units].first[:shipping][:name]
+      country_id = ::Spree::Country.find_by(iso: address[:country_code]).id
+      state_id = ::Spree::State.where({abbr: address[:admin_area_1], country_id: country_id}).first.id
 
       address_params = {
-        firstname: response.result.payer.name.given_name, 
-        lastname: response.result.payer.name.surname, 
-        address1: address.address_line_1,
-        address2: address.address_line_2,
-        city: address.admin_area_2, 
+        firstname: result[:payer][:name][:given_name], 
+        lastname: result[:payer][:name][:surname], 
+        address1: address[:address_line_1],
+        address2: address[:address_line_2],
+        city: address[:admin_area_2], 
         state_id: state_id.to_s, 
-        zipcode: address.postal_code, 
+        zipcode: address[:postal_code], 
         country_id: country_id.to_s, 
-        phone: address.phone
+        phone: address[:phone]
       }
 
       customer_info_params = { 
-        email: response.result.payer.email_address, 
+        email: result[:payer][:email_address], 
         bill_address_attributes: address_params,
         ship_address_attributes: address_params
       }
 
       _params = ActionController::Parameters.new({
         order: {
-          email: response.result.payer.email_address, 
+          email: result[:payer][:email_address], 
           bill_address_attributes: address_params,
-          use_billing: 1
+          use_billing: "1"
         },
         save_user_address: true
       })
@@ -84,8 +84,7 @@ module Paypal
     end
 
     def payment_method
-      # Spree::PaymentMethod.find(params[:payment_method_id])
-      Spree::PaymentMethod.find(8)
+      Spree::PaymentMethod.find(params[:payment_method_id])
     end
 
     def client
@@ -122,27 +121,6 @@ module Paypal
       #   items: items
       # }
       express_checkout_request_details self.line_items
-    end
-
-    def setup!(return_url, cancel_url)
-      response = client.setup(
-        payment_request,
-        return_url,
-        cancel_url,
-        {
-          pay_on_paypal: true,
-          no_shipping: 1
-        }
-      )
-      self.payments.create!({
-        source: Spree::PaypalExpressCheckout.create({
-                                                        token: response.token,
-                                                        state: "pending"
-                                                    }),
-        amount: self.total,
-        payment_method: Spree::PaymentMethod.find(8)
-      })
-      response.token
     end
 
     def get_customer_info(order_id)
@@ -188,7 +166,7 @@ module Paypal
           payment_method: payment_method
       })
         # If call returns body in response, you can get the deserialized version from the result attribute of the response
-        order = response.result
+        order = result
         puts order
       rescue PayPalHttp::HttpError => ioe
         # Something went wrong server-side

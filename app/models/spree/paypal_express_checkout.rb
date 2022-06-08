@@ -1,5 +1,7 @@
 module Spree
   class PaypalExpressCheckout < ActiveRecord::Base
+    self.table_name = "spree_paypal_checkouts"
+    
     def actions
       %w(capture void credit)
     end
