@@ -58,7 +58,7 @@ module Spree
     def confirm
       order = current_order || raise(ActiveRecord::RecordNotFound)
       order.payments.create!({
-                                 source: Spree::PaypalExpressCheckout.create({
+                                 source: Spree::PaypalCheckout.create({
                                                                                  token: params[:token],
                                                                                  payer_id: params[:PayerID]
                                                                              }),

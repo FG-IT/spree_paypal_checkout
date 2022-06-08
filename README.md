@@ -1,4 +1,4 @@
-# SpreePaypalExpress
+# SpreePaypal
 
 Introduction goes here.
 

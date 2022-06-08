@@ -7,7 +7,7 @@ require 'spree_paypal_express/version'
 Gem::Specification.new do |s|
   s.platform    = Gem::Platform::RUBY
   s.name        = 'spree_paypal_checkout'
-  s.version     = SpreePaypalExpress.version
+  s.version     = SpreePaypal.version
   s.summary     = 'Adds PayPal Express as a Payment Method to Spree Commerce'
   s.description = s.summary
   s.required_ruby_version = '>= 2.5'

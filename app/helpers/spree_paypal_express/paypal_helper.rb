@@ -1,5 +1,5 @@
-module SpreePaypalExpress
+module SpreePaypal
   def paypal_express_id
-    PaymentMethod.find_by(type: "Spree::Gateway::PayPalExpress").id
+    PaymentMethod.find_by(type: "Spree::Gateway::Paypal").id
   end
 end

@@ -1,4 +1,4 @@
-module SpreePaypalExpress
+module SpreePaypal
   class Engine < Rails::Engine
     require 'spree/core'
     isolate_namespace Spree
@@ -10,7 +10,7 @@ module SpreePaypalExpress
     end
 
     initializer "spree.paypal_express.payment_methods", :after => "spree.register.payment_methods" do |app|
-      app.config.spree.payment_methods << Spree::Gateway::PayPalExpress
+      app.config.spree.payment_methods << Spree::Gateway::Paypal
     end
 
     def self.activate

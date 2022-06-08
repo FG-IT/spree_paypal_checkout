@@ -2,7 +2,7 @@ module Paypal
   module OrderDecorator
 
     def self.prepended(base)
-      base.has_many :paypal_checkouts, class_name: "Spree::PaypalExpressCheckout"
+      base.has_many :paypal_checkouts, class_name: "Spree::PaypalCheckout"
     end
 
     def checkout_summary
@@ -158,7 +158,7 @@ module Paypal
         response = client.execute(request)
 
         order.payments.create!({
-          source: Spree::PaypalExpressCheckout.create({
+          source: Spree::PaypalCheckout.create({
                                                           token: params[:orderID],
                                                           payer_id: params[:PayerID]
                                                       }),
@@ -217,7 +217,7 @@ module Paypal
       })
       if paypal_express_payment.create
         self.payments.create!({
-          source: Spree::PaypalExpressCheckout.create({
+          source: Spree::PaypalCheckout.create({
                                                           token: paypal_express_payment.token,
                                                           state: "pending"
                                                       }),
@@ -229,7 +229,7 @@ module Paypal
     end
 
     def execute_paypal_express_payment(payment_id:, payer_id:, token:)
-      paypal_express_checkout = Spree::PaypalExpressCheckout.find_by(token: token)
+      paypal_express_checkout = Spree::PaypalCheckout.find_by(token: token)
       paypal_express_checkout.update_columns(payer_id: payer_id, transaction_id: payment_id)
       # payment = ::PayPal::SDK::REST::Payment.find(payment_id)
       # if payment.execute( payer_id: payer_id )

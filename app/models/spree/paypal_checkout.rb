@@ -1,5 +1,5 @@
 module Spree
-  class PaypalExpressCheckout < ActiveRecord::Base
+  class PaypalCheckout < ActiveRecord::Base
     self.table_name = "spree_paypal_checkouts"
     
     def actions

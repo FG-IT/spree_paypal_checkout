@@ -2,7 +2,7 @@ module Paypal
   module PaymentDecorator
 
     def cancel!
-      if payment_method.is_a?(Spree::Gateway::PayPalExpress)
+      if payment_method.is_a?(Spree::Gateway::Paypal)
         response = payment_method.cancel(response_code, source, self)
       else
         response = payment_method.cancel(response_code)
@@ -16,7 +16,7 @@ module Paypal
       return true if void?
 
       protect_from_connection_error do
-        if payment_method.payment_profiles_supported? or payment_method.is_a?(Spree::Gateway::PayPalExpress)
+        if payment_method.payment_profiles_supported? or payment_method.is_a?(Spree::Gateway::Paypal)
           # Gateways supporting payment profiles will need access to credit card object because this stores the payment profile information
           # so supply the authorization itself as well as the credit card, rather than just the authorization code
           response = payment_method.void(response_code, source, gateway_options)

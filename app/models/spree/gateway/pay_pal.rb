@@ -1,5 +1,5 @@
 module Spree
-  class Gateway::PayPalExpress < Gateway
+  class Gateway::PayPal < Gateway
     preference :paypal_client_id, :string
     preference :paypal_client_secret, :string
     preference :server, :string, default: 'sandbox'
@@ -97,7 +97,7 @@ module Spree
       if response_code.nil?
         source = _source
       else
-        source = Spree::PaypalExpressCheckout.find_by(token: response_code)
+        source = Spree::PaypalCheckout.find_by(token: response_code)
       end
 
       if payment.present? and source.can_credit? payment
@@ -112,7 +112,7 @@ module Spree
       if _source.present?
         source = _source
       else
-        source = Spree::PaypalExpressCheckout.find_by(token: response_code)
+        source = Spree::PaypalCheckout.find_by(token: response_code)
       end
       authorization_id = source.transaction_id
       request = ::PayPalCheckoutSdk::Payments::AuthorizationsVoidRequest::new(authorization_id)

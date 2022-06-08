@@ -1,6 +1,6 @@
 //= require spree/frontend
 var checkoutText = ''
-SpreePaypalExpress = {
+SpreePaypal = {
   updateSaveAndContinueVisibility: function () {
     if (this.isButtonHidden()) {
       $(this).trigger('hideSaveAndContinue')
@@ -10,7 +10,7 @@ SpreePaypalExpress = {
   },
   isButtonHidden: function () {
     paymentMethod = this.checkedPaymentMethod();
-    return (SpreePaypalExpress.paymentMethodID && paymentMethod.val() === SpreePaypalExpress.paymentMethodID);
+    return (SpreePaypal.paymentMethodID && paymentMethod.val() === SpreePaypal.paymentMethodID);
   },
   checkedPaymentMethod: function () {
     return $('div[data-hook="checkout_payment_step"] input[type="radio"][name="order[payments_attributes][][payment_method_id]"]:checked');
@@ -31,21 +31,21 @@ SpreePaypalExpress = {
 }
 
 document.addEventListener('turbolinks:load', function () {
-  SpreePaypalExpress.updateSaveAndContinueVisibility();
+  SpreePaypal.updateSaveAndContinueVisibility();
   paymentMethods = $('div[data-hook="checkout_payment_step"] input[type="radio"]').click(function (e) {
-    SpreePaypalExpress.updateSaveAndContinueVisibility();
+    SpreePaypal.updateSaveAndContinueVisibility();
   });
   var paypal_logo_tag = $('#paypal-image-logo')
   $('div[data-hook="checkout_payment_step"] .payment-option').each(function () {
     var radio = $(this).find('input[type="radio"][name="order[payments_attributes][][payment_method_id]')
-    if (radio.attr('value') == SpreePaypalExpress.paymentMethodID) {
+    if (radio.attr('value') == SpreePaypal.paymentMethodID) {
       $(this).find('.spree-radio-label-text').html(paypal_logo_tag.html())
     }
   })
   $('#checkout_form_payment').submit(function () {
     $("#checkout_form_payment [data-hook=buttons] .checkout-content-save-continue-button").attr('disabled', 'disabled')
-    var paymentMethod = SpreePaypalExpress.checkedPaymentMethod();
-    if (SpreePaypalExpress.paymentMethodID && SpreePaypalExpress.paymentMethodID == paymentMethod.val()) {
+    var paymentMethod = SpreePaypal.checkedPaymentMethod();
+    if (SpreePaypal.paymentMethodID && SpreePaypal.paymentMethodID == paymentMethod.val()) {
       $("#paypal_button")[0].click();
       return false
     }

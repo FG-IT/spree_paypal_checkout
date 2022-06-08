@@ -1,4 +1,4 @@
-module SpreePaypalExpress
+module SpreePaypal
   module Generators
     class InstallGenerator < Rails::Generators::Base
       class_option :migrate, type: :boolean, default: true
