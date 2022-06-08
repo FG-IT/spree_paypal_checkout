@@ -145,9 +145,8 @@ module Spree
           :value => credit_cents.to_f / 100
         }
       }
-
       logger.info params
-
+      request.request_body(params);
       begin
         response = provider.execute(request)
         result = openstruct_to_hash(response)[:result]

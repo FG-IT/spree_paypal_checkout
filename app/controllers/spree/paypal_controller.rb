@@ -3,8 +3,7 @@ module Spree
 
     def add_shipping_address
       data = JSON.parse(params[:data])
-      current_order = Spree::Order.find(params[:order_id])
-      @order = current_order || raise(ActiveRecord::RecordNotFound)
+      @order = Spree::Order.find(params[:order_id]) || raise(ActiveRecord::RecordNotFound)
       paypal_order_id = data["orderID"]
       request = ::PayPalCheckoutSdk::Orders::OrdersGetRequest.new(paypal_order_id)
       begin
@@ -23,27 +22,9 @@ module Spree
         end
       rescue PayPalHttp::HttpError => ioe
         # Something went wrong server-side
-        puts ioe.status_code
-        puts ioe.headers["paypal-debug-id"]
+        logger.error ioe.status_code
+        logger.error ioe.headers["paypal-debug-id"]
       end
-    end
-
-    def patch_order(order_id, paypal_order_id)
-
-      current_order = Spree::Order.find(order_id)
-      @order = current_order || raise(ActiveRecord::RecordNotFound)
-
-      body = [{
-        "op": "replace",
-        "path": "/purchase_units/@reference_id=='default'/amount",
-        "value": @order.checkout_summary[:purchase_units].first[:amount],
-        "items": @order.checkout_summary[:purchase_units].first[:items]
-      }]
-
-      request = ::PayPalCheckoutSdk::Orders::OrdersPatchRequest::new(paypal_order_id)
-      request.request_body(body)
-      response = provider.execute(request)
-      return response
     end
 
     def capture_order(paypal_order_id)
@@ -54,9 +35,9 @@ module Spree
         return response
       rescue PayPalHttp::HttpError => ioe
         # Exception occured while processing the refund.
-        puts " Status Code: #{ioe.status_code}"
-        puts " Debug Id: #{ioe.result.debug_id}"
-        puts " Response: #{ioe.result}"
+        logger.error " Status Code: #{ioe.status_code}"
+        logger.error " Debug Id: #{ioe.result.debug_id}"
+        logger.error " Response: #{ioe.result}"
       end
     end
 
@@ -68,9 +49,9 @@ module Spree
         return response
       rescue PayPalHttp::HttpError => ioe
         # Exception occured while processing the refund.
-        puts " Status Code: #{ioe.status_code}"
-        puts " Debug Id: #{ioe.result.debug_id}"
-        puts " Response: #{ioe.result}"
+        logger.error " Status Code: #{ioe.status_code}"
+        logger.error " Debug Id: #{ioe.result.debug_id}"
+        logger.error " Response: #{ioe.result}"
       end
     end
 
@@ -105,15 +86,21 @@ module Spree
       @order = current_order || Spree::Order.find(params[:order_id]) || raise(ActiveRecord::RecordNotFound)
       
       if @order.paypal_checkouts.present?
-       
-        @order.payments.create!({
-          source: @order.paypal_checkouts.last,
-          amount: @order.total,
-          payment_method: payment_method
-        })
+        begin
+          @order.payments.create!({
+            source: @order.paypal_checkouts.last,
+            amount: @order.total,
+            payment_method: payment_method
+          })
+          update_paypal_order_info(@order)
+          @order.next
+        rescue PayPalHttp::HttpError => ioe
+          # Exception occured while processing the refund.
+          logger.error " Status Code: #{ioe.status_code}"
+          logger.error " Debug Id: #{ioe.result.debug_id}"
+          logger.error " Response: #{ioe.result}"
+        end
 
-        @order.next
-        
         if @order.complete?
           flash.notice = Spree.t(:order_processed_successfully)
           flash[:order_completed] = true
@@ -124,25 +111,25 @@ module Spree
         end
       end
 
-      body = {
-        intent: 'AUTHORIZE',
-        application_context: {
-          return_url: confirm_paypal_url(payment_method_id: params[:payment_method_id], utm_nooverride: 1),
-          cancel_url: cancel_paypal_url,
-          brand_name: 'EVERYMARKET INC'
-          # user_action: params[:paypal_action]
-        }
-      }.merge(@order.checkout_summary)
-
       # body = {
-      #   intent: 'CAPTURE',
+      #   intent: 'AUTHORIZE',
       #   application_context: {
       #     return_url: confirm_paypal_url(payment_method_id: params[:payment_method_id], utm_nooverride: 1),
       #     cancel_url: cancel_paypal_url,
-      #     brand_name: 'EVERYMARKET INC',
-      #     user_action: params[:paypal_action]
+      #     brand_name: 'EVERYMARKET INC'
+      #     # user_action: params[:paypal_action]
       #   }
       # }.merge(@order.checkout_summary)
+
+      body = {
+        intent: 'CAPTURE',
+        application_context: {
+          return_url: confirm_paypal_url(payment_method_id: params[:payment_method_id], utm_nooverride: 1),
+          cancel_url: cancel_paypal_url,
+          brand_name: 'EVERYMARKET INC',
+          user_action: params[:paypal_action]
+        }
+      }.merge(@order.checkout_summary)
 
       paypal_request = ::PayPalCheckoutSdk::Orders::OrdersCreateRequest::new
       paypal_request.headers["prefer"] = "return=representation"
@@ -150,7 +137,6 @@ module Spree
       begin
         response = provider.execute(paypal_request)
         result = openstruct_to_hash(response.result)
-        binding.pry
         if params[:paypal_action] == 'PAY_NOW'
           render json: { approve_url: get_approve_url(result[:links]) }, status: :ok
         else
@@ -158,13 +144,25 @@ module Spree
         end
       rescue PayPalHttp::HttpError => ioe
         # Exception occured while processing the refund.
-        puts " Status Code: #{ioe.status_code}"
-        puts " Debug Id: #{ioe.result.debug_id}"
-        puts " Response: #{ioe.result}"
+        logger.error " Status Code: #{ioe.status_code}"
+        logger.error " Debug Id: #{ioe.result.debug_id}"
+        logger.error " Response: #{ioe.result}"
       end
     end
 
     private
+
+    def update_paypal_order_info(order, paypal_order_id)
+      body = [{
+        "op": "replace",
+        "path": "/purchase_units/@reference_id=='default'/amount",
+        "value": order.checkout_summary[:purchase_units].first[:amount],
+        "items": order.checkout_summary[:purchase_units].first[:items]
+      }]
+      request = ::PayPalCheckoutSdk::Orders::OrdersPatchRequest::new(order.paypal_checkouts.last.token)
+      request.request_body(body)
+      response = provider.execute(request)
+    end
 
     def openstruct_to_hash(object, hash = {})
       object.each_pair do |key, value|
