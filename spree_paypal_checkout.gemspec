@@ -2,12 +2,12 @@
 lib = File.expand_path('../lib/', __FILE__)
 $LOAD_PATH.unshift lib unless $LOAD_PATH.include?(lib)
 
-require 'spree_paypal_express/version'
+require 'spree_paypal_checkout/version'
 
 Gem::Specification.new do |s|
   s.platform    = Gem::Platform::RUBY
   s.name        = 'spree_paypal_checkout'
-  s.version     = SpreePaypal.version
+  s.version     = SpreePaypalCheckout.version
   s.summary     = 'Adds PayPal Express as a Payment Method to Spree Commerce'
   s.description = s.summary
   s.required_ruby_version = '>= 2.5'

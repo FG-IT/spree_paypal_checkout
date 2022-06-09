@@ -1,6 +1,5 @@
 module Spree
   class PaypalCheckout < ActiveRecord::Base
-    self.table_name = "spree_paypal_checkouts"
     
     def actions
       %w(capture void credit)
@@ -17,6 +16,5 @@ module Spree
     def can_credit?(payment)
       payment.completed? && payment.credit_allowed > 0
     end
-
   end
 end

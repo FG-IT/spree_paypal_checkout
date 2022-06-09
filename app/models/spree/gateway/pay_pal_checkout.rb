@@ -1,5 +1,5 @@
 module Spree
-  class Gateway::PayPal < Gateway
+  class Gateway::PayPalCheckout < Gateway
     preference :paypal_client_id, :string
     preference :paypal_client_secret, :string
     preference :server, :string, default: 'sandbox'
@@ -37,7 +37,7 @@ module Spree
       request.request_body({})
       begin
         response = provider.execute(request)
-        result = openstruct_to_hash(response)[:result]
+        result = ::PaypalServices::Response::openstruct_to_hash(response)[:result]
         return Response.new(true, nil, {:id => result[:id]})
       rescue PayPalHttp::HttpError => ioe
         # Exception occured while processing the refund.
@@ -56,7 +56,7 @@ module Spree
       request.request_body({})
       begin
         response = provider.execute(request)
-        result = openstruct_to_hash(response)[:result]
+        result = ::PaypalServices::Response::openstruct_to_hash(response)[:result]
         authorization_id = result[:purchase_units].first[:payments][:captures].first[:id]
         checkout.update(state: 'completed', transaction_id: authorization_id)
         return Response.new(true, nil, {:id => authorization_id})
@@ -76,7 +76,7 @@ module Spree
       request.request_body({})
       begin
         response = provider.execute(request)
-        result = openstruct_to_hash(response)[:result]
+        result = ::PaypalServices::Response::openstruct_to_hash(response)[:result]
         authorization_id = result[:purchase_units].first[:payments][:captures].first[:id]
         checkout.update(state: 'completed', transaction_id: authorization_id)
         return Response.new(true, nil, {:id => authorization_id})
@@ -122,7 +122,7 @@ module Spree
       begin
         response = provider.execute(request)
         source.update(state: 'voided')
-        result = openstruct_to_hash(response)[:result]
+        result = ::PaypalServices::Response::openstruct_to_hash(response)[:result]
         return Response.new(true, nil, {:id => result[:id]})
       rescue PayPalHttp::HttpError => ioe
         # Exception occured while processing the refund.
@@ -149,14 +149,14 @@ module Spree
       request.request_body(params);
       begin
         response = provider.execute(request)
-        result = openstruct_to_hash(response)[:result]
+        result = ::PaypalServices::Response::openstruct_to_hash(response)[:result]
         payment.source.update({
                                 :refunded_at => Time.now,
                                 :refund_transaction_id => result[:id],
                                 :state => "refunded",
                                 :refund_type => refund_type
                               })
-        result = openstruct_to_hash(response)[:result]
+        result = ::PaypalServices::Response::openstruct_to_hash(response)[:result]
         return Response.new(true, nil, {:id => result[:id]})
       rescue PayPalHttp::HttpError => ioe
         # Exception occured while processing the refund.
@@ -164,23 +164,6 @@ module Spree
         puts " Debug Id: #{ioe.result.debug_id}"
         puts " Response: #{ioe.result}"
       end
-    end
-
-    private
-
-    def openstruct_to_hash(object, hash = {})
-      object.each_pair do |key, value|
-        hash[key] = value.is_a?(OpenStruct) ? openstruct_to_hash(value) : value.is_a?(Array) ? array_to_hash(value) : value
-      end
-      hash
-    end
-
-    def array_to_hash(array, hash= [])
-      array.each do |item|
-        x = item.is_a?(OpenStruct) ? openstruct_to_hash(item) : item.is_a?(Array) ? array_to_hash(item) : item
-        hash << x
-      end
-      hash
     end
   end
 end

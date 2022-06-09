@@ -1,16 +1,16 @@
-module SpreePaypal
+module SpreePaypalCheckout
   class Engine < Rails::Engine
     require 'spree/core'
     isolate_namespace Spree
-    engine_name 'spree_paypal_express'
+    engine_name 'spree_paypal_checkout'
 
     # use rspec for tests
     config.generators do |g|
       g.test_framework :rspec
     end
 
-    initializer "spree.paypal_express.payment_methods", :after => "spree.register.payment_methods" do |app|
-      app.config.spree.payment_methods << Spree::Gateway::Paypal
+    initializer "spree.paypal_checkout.payment_methods", :after => "spree.register.payment_methods" do |app|
+      app.config.spree.payment_methods << Spree::Gateway::PayPalCheckout
     end
 
     def self.activate
