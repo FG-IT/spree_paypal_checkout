@@ -46,7 +46,27 @@ document.addEventListener('turbolinks:load', function () {
     $("#checkout_form_payment [data-hook=buttons] .checkout-content-save-continue-button").attr('disabled', 'disabled')
     var paymentMethod = SpreePaypalCheckout.checkedPaymentMethod();
     if (SpreePaypalCheckout.paymentMethodID && SpreePaypalCheckout.paymentMethodID == paymentMethod.val()) {
-      $("#paypal_button")[0].click();
+      let order_id = $("#checkout_form_payment form").attr("id").split("_").pop()
+      let payment_method_id = $("#paypal_payment_method").attr("data-payment-method-id")
+
+      formData = {
+        "paypal_action": "PAY_NOW",
+        "order_id": order_id,
+        "payment_method_id": payment_method_id
+      }
+
+      fetch("/paypal_checkout/create_paypal_order", {
+        method: 'POST',
+        headers: {
+          'X-CSRF-Token': $('meta[name="csrf-token"]').attr('content'),
+          'Content-Type': 'application/json'
+        },
+        body: formData
+      }).then(response => response.json())
+      .then((data) => {
+        window.location.replace(data.redirect)
+        }
+      );
       return false
     }
   })

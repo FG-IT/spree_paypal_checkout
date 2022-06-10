@@ -35,16 +35,9 @@ module Spree
       request.prefer("return=representation")
       # This request body can be updated with fields as per requirement. Please refer API docs for more info.
       request.request_body({})
-      begin
-        response = provider.execute(request)
-        result = ::PaypalServices::Response::openstruct_to_hash(response)[:result]
-        return Response.new(true, nil, {:id => result[:id]})
-      rescue PayPalHttp::HttpError => ioe
-        # Exception occured while processing the refund.
-        puts " Status Code: #{ioe.status_code}"
-        puts " Debug Id: #{ioe.result.debug_id}"
-        puts " Response: #{ioe.result}"
-      end
+      response = provider.execute(request)
+      result = ::PaypalServices::Response::openstruct_to_hash(response)[:result]
+      return Response.new(true, nil, {:id => result[:id]})
     end
 
     def settle(amount, checkout, gateway_options) end
@@ -54,18 +47,11 @@ module Spree
       request.prefer("return=representation")
       #Below request bodyn can be updated with fields as per business need. Please refer API docs for more info.
       request.request_body({})
-      begin
-        response = provider.execute(request)
-        result = ::PaypalServices::Response::openstruct_to_hash(response)[:result]
-        authorization_id = result[:purchase_units].first[:payments][:captures].first[:id]
-        checkout.update(state: 'completed', transaction_id: authorization_id)
-        return Response.new(true, nil, {:id => authorization_id})
-      rescue PayPalHttp::HttpError => ioe
-        # Exception occured while processing the refund.
-        logger.info  " Status Code: #{ioe.status_code}"
-        logger.info  " Debug Id: #{ioe.result.debug_id}"
-        logger.info  " Response: #{ioe.result}"
-      end
+      response = provider.execute(request)
+      result = ::PaypalServices::Response::openstruct_to_hash(response)[:result]
+      authorization_id = result[:purchase_units].first[:payments][:captures].first[:id]
+      checkout.update(state: 'completed', transaction_id: authorization_id)
+      return Response.new(true, nil, {:id => authorization_id})
     end
 
     def purchase(amount, checkout, gateway_options = {})
@@ -74,18 +60,11 @@ module Spree
       request.prefer("return=representation")
       #Below request bodyn can be updated with fields as per business need. Please refer API docs for more info.
       request.request_body({})
-      begin
-        response = provider.execute(request)
-        result = ::PaypalServices::Response::openstruct_to_hash(response)[:result]
-        authorization_id = result[:purchase_units].first[:payments][:captures].first[:id]
-        checkout.update(state: 'completed', transaction_id: authorization_id)
-        return Response.new(true, nil, {:id => authorization_id})
-      rescue PayPalHttp::HttpError => ioe
-        # Exception occured while processing the refund.
-        logger.info  " Status Code: #{ioe.status_code}"
-        logger.info  " Debug Id: #{ioe.result.debug_id}"
-        logger.info  " Response: #{ioe.result}"
-      end
+      response = provider.execute(request)
+      result = ::PaypalServices::Response::openstruct_to_hash(response)[:result]
+      authorization_id = result[:purchase_units].first[:payments][:captures].first[:id]
+      checkout.update(state: 'completed', transaction_id: authorization_id)
+      return Response.new(true, nil, {:id => authorization_id})
     end
 
     def credit(credit_cents, transaction_id, _options)
@@ -116,20 +95,11 @@ module Spree
       end
       authorization_id = source.transaction_id
       request = ::PayPalCheckoutSdk::Payments::AuthorizationsVoidRequest::new(authorization_id)
-
       #Below request bodyn can be updated with fields as per business need. Please refer API docs for more info.
-
-      begin
-        response = provider.execute(request)
-        source.update(state: 'voided')
-        result = ::PaypalServices::Response::openstruct_to_hash(response)[:result]
-        return Response.new(true, nil, {:id => result[:id]})
-      rescue PayPalHttp::HttpError => ioe
-        # Exception occured while processing the refund.
-        logger.info  " Status Code: #{ioe.status_code}"
-        logger.info  " Debug Id: #{ioe.result.debug_id}"
-        logger.info  " Response: #{ioe.result}"
-      end
+      response = provider.execute(request)
+      source.update(state: 'voided')
+      result = ::PaypalServices::Response::openstruct_to_hash(response)[:result]
+      return Response.new(true, nil, {:id => result[:id]})
     end
 
     def refund(capture_id, payment, credit_cents)
@@ -147,23 +117,16 @@ module Spree
       }
       logger.info params
       request.request_body(params);
-      begin
-        response = provider.execute(request)
-        result = ::PaypalServices::Response::openstruct_to_hash(response)[:result]
-        payment.source.update({
-                                :refunded_at => Time.now,
-                                :refund_transaction_id => result[:id],
-                                :state => "refunded",
-                                :refund_type => refund_type
-                              })
-        result = ::PaypalServices::Response::openstruct_to_hash(response)[:result]
-        return Response.new(true, nil, {:id => result[:id]})
-      rescue PayPalHttp::HttpError => ioe
-        # Exception occured while processing the refund.
-        puts " Status Code: #{ioe.status_code}"
-        puts " Debug Id: #{ioe.result.debug_id}"
-        puts " Response: #{ioe.result}"
-      end
+      response = provider.execute(request)
+      result = ::PaypalServices::Response::openstruct_to_hash(response)[:result]
+      payment.source.update({
+                              :refunded_at => Time.now,
+                              :refund_transaction_id => result[:id],
+                              :state => "refunded",
+                              :refund_type => refund_type
+                            })
+      result = ::PaypalServices::Response::openstruct_to_hash(response)[:result]
+      return Response.new(true, nil, {:id => result[:id]})
     end
   end
 end

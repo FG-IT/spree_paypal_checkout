@@ -6,9 +6,9 @@ module PaypalServices
       @provider = provider
     end
 
-    def valid?(paypal_order_id)
+    def paypal_order_valid?
       begin
-        request = ::PayPalCheckoutSdk::Orders::OrdersGetRequest::new(paypal_order_id)
+        request = ::PayPalCheckoutSdk::Orders::OrdersGetRequest::new(@order.paypal_checkout.token)
         result = ::PaypalServices::Request.request_paypal(@provider, request)
         return true
       rescue PayPalHttp::HttpError => ioe

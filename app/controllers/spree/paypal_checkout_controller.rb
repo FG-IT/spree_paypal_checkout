@@ -2,10 +2,9 @@ module Spree
   class PaypalCheckoutController < StoreController
 
     def add_shipping_address
-      order = Spree::Order.find(params[:order_id]) || raise(ActiveRecord::RecordNotFound)
+      order = current_order || Spree::Order.find(params[:order_id]) || raise(ActiveRecord::RecordNotFound)
       paypal_order_id = params[:data]["orderID"]
       request = ::PayPalCheckoutSdk::Orders::OrdersGetRequest.new(paypal_order_id)
-      binding.pry
       paypal = paypal_checkout(order, provider)
       result = ::PaypalServices::Request.request_paypal(provider, request)
       if paypal.add_shipping_address_from_paypal(result, permitted_checkout_attributes)
@@ -23,7 +22,7 @@ module Spree
 
     def confirm
       order = current_order || raise(ActiveRecord::RecordNotFound)
-      paypal =paypal_checkout(order, provider)
+      paypal = paypal_checkout(order, provider)
       paypal.complete_with_paypal_checkout(params[:token], params[:PayerID], payment_method)
 
       if order.complete?
@@ -44,11 +43,11 @@ module Spree
 
     def create_paypal_order
       order = current_order || Spree::Order.find(params[:order_id]) || raise(ActiveRecord::RecordNotFound)
-      paypal =paypal_checkout(order, provider)
-      if order.paypal_checkout.present? && paypal.valid?(order.paypal_checkout.token)
+      paypal = paypal_checkout(order, provider)
+      if order.paypal_checkout.present? && paypal.paypal_order_valid?
         paypal.update_paypal_order
         if params[:paypal_action] == 'PAY_NOW'
-          order.complete_with_paypal_express_payment(payment_method)
+          paypal.complete_with_paypal_express_payment(payment_method)
           if order.complete?
             flash.notice = Spree.t(:order_processed_successfully)
             flash[:order_completed] = true

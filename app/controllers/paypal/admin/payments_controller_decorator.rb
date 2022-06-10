@@ -1,5 +1,5 @@
 module Paypal::Admin::PaymentsControllerDecorator
-  def paypal_refund
+  def paypal_checkout_refund
     if request.get?
       if @payment.source.state == 'refunded'
         flash[:error] = ::Spree.t(:already_refunded, :scope => 'paypal')
