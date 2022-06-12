@@ -15,11 +15,6 @@ module Spree
       end
     end
 
-    def capture_order(paypal_order_id)
-      request = ::PayPalCheckoutSdk::Orders::OrdersCaptureRequest::new(paypal_order_id)
-      result = ::PaypalServices::Request.request_paypal(provider, request, body, "return=representation")
-    end
-
     def confirm
       order = current_order || raise(ActiveRecord::RecordNotFound)
       paypal = paypal_checkout(order, provider)
@@ -44,31 +39,38 @@ module Spree
     def create_paypal_order
       order = current_order || Spree::Order.find(params[:order_id]) || raise(ActiveRecord::RecordNotFound)
       paypal = paypal_checkout(order, provider)
-      if order.paypal_checkout.present? && paypal.paypal_order_valid?
-        paypal.update_paypal_order
-        if params[:paypal_action] == 'PAY_NOW'
-          paypal.complete_with_paypal_express_payment(payment_method)
-          if order.complete?
-            flash.notice = Spree.t(:order_processed_successfully)
-            flash[:order_completed] = true
-            session[:order_id] = nil
-            render json: { redirect: completion_route(order) }, status: :ok
+      
+      begin
+        if order.paypal_checkout.present? && paypal.paypal_order_valid?          
+          paypal.update_paypal_order
+          if params[:paypal_action] == 'PAY_NOW'
+            paypal.complete_with_paypal_express_payment(payment_method)
+            if order.complete?
+              flash.notice = Spree.t(:order_processed_successfully)
+              flash[:order_completed] = true
+              session[:order_id] = nil
+              render json: { redirect: completion_route(order) }, status: :ok
+            else
+              render json: { redirect: checkout_state_path(order.state) }, status: :ok
+            end
           else
-            render json: { redirect: checkout_state_path(order.state) }, status: :ok
+            render json: { token: order.paypal_checkout.token }, status: :ok
           end
         else
-          render json: { token: order.paypal_checkout.token }, status: :ok
+          intent = payment_method.auto_capture? ? "CAPTURE" : "AUTHORIZE"
+          body = paypal.paypal_order_params(intent, confirm_paypal_checkout_url(payment_method_id: params[:payment_method_id], utm_nooverride: 1), cancel_paypal_checkout_url, 'EVERYMARKET INC', params[:paypal_action])
+          request = ::PayPalCheckoutSdk::Orders::OrdersCreateRequest::new
+          result = ::PaypalServices::Request.request_paypal(provider, request, body)
+          if params[:paypal_action] == 'PAY_NOW'
+            render json: { redirect: get_approve_url(result[:links]) }, status: :ok
+          else
+            render json: { token: result[:id] }, status: :ok
+          end
         end
-      else
-        body = paypal.paypal_order_params('CAPTURE', confirm_paypal_checkout_url(payment_method_id: params[:payment_method_id], utm_nooverride: 1), cancel_paypal_checkout_url, 'EVERYMARKET INC', params[:paypal_action])
-        request = ::PayPalCheckoutSdk::Orders::OrdersCreateRequest::new
-        result = ::PaypalServices::Request.request_paypal(provider, request, body, "return=representation")
-        if params[:paypal_action] == 'PAY_NOW'
-          render json: { redirect: get_approve_url(result[:links]) }, status: :ok
-        else
-          render json: { token: result[:id] }, status: :ok
-        end
-      end
+      rescue PayPalHttp::HttpError => ioe
+        flash[:error] = Spree.t('flash.connection_failed', scope: 'paypal')
+        redirect_to checkout_state_path(:payment)
+      end 
     end
 
     private

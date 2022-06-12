@@ -32,39 +32,21 @@ module Spree
 
     def authorize(amount, checkout, gateway_options = {})
       request = ::PayPalCheckoutSdk::Orders::OrdersAuthorizeRequest::new(checkout.token)
-      request.prefer("return=representation")
-      # This request body can be updated with fields as per requirement. Please refer API docs for more info.
-      request.request_body({})
-      response = provider.execute(request)
-      result = ::PaypalServices::Response::openstruct_to_hash(response)[:result]
-      return Response.new(true, nil, {:id => result[:id]})
+      sale(request, nil, checkout, "Authorization", gateway_options)
     end
 
     def settle(amount, checkout, gateway_options) end
 
-    def capture(amount, checkout, gateway_options)
-      request = ::PayPalCheckoutSdk::Orders::OrdersCaptureRequest::new(checkout.token)
-      request.prefer("return=representation")
-      #Below request bodyn can be updated with fields as per business need. Please refer API docs for more info.
-      request.request_body({})
-      response = provider.execute(request)
-      result = ::PaypalServices::Response::openstruct_to_hash(response)[:result]
-      authorization_id = result[:purchase_units].first[:payments][:captures].first[:id]
-      checkout.update(state: 'completed', transaction_id: authorization_id)
-      return Response.new(true, nil, {:id => authorization_id})
+    def capture(credit_cents, transaction_id, gateway_options)
+      payment_id = gateway_options[:order_id].split('-')[-1]
+      payment = Spree::Payment.find_by(number: payment_id)
+      request = ::PayPalCheckoutSdk::Payments::AuthorizationsCaptureRequest::new(payment.source.transaction_id)
+      sale(request, nil, payment.source, "Capture", gateway_options)
     end
 
     def purchase(amount, checkout, gateway_options = {})
-
       request = ::PayPalCheckoutSdk::Orders::OrdersCaptureRequest::new(checkout.token)
-      request.prefer("return=representation")
-      #Below request bodyn can be updated with fields as per business need. Please refer API docs for more info.
-      request.request_body({})
-      response = provider.execute(request)
-      result = ::PaypalServices::Response::openstruct_to_hash(response)[:result]
-      authorization_id = result[:purchase_units].first[:payments][:captures].first[:id]
-      checkout.update(state: 'completed', transaction_id: authorization_id)
-      return Response.new(true, nil, {:id => authorization_id})
+      sale(request, nil, checkout, "Sale", gateway_options)
     end
 
     def credit(credit_cents, transaction_id, _options)
@@ -87,19 +69,18 @@ module Spree
     end
 
     def void(response_code, _source, gateway_options)
-
+      binding.pry
       if _source.present?
         source = _source
       else
-        source = Spree::PaypalCheckout.find_by(token: response_code)
+        source = Spree::PaypalCheckout.find_by(transaction_id: response_code)
       end
       authorization_id = source.transaction_id
       request = ::PayPalCheckoutSdk::Payments::AuthorizationsVoidRequest::new(authorization_id)
       #Below request bodyn can be updated with fields as per business need. Please refer API docs for more info.
-      response = provider.execute(request)
-      source.update(state: 'voided')
-      result = ::PaypalServices::Response::openstruct_to_hash(response)[:result]
-      return Response.new(true, nil, {:id => result[:id]})
+      
+      # return Response.new(true, nil, {:id => result[:id]})
+      sale(request, nil, source, "Void", gateway_options)
     end
 
     def refund(capture_id, payment, credit_cents)
@@ -116,17 +97,50 @@ module Spree
         }
       }
       logger.info params
-      request.request_body(params);
-      response = provider.execute(request)
-      result = ::PaypalServices::Response::openstruct_to_hash(response)[:result]
-      payment.source.update({
-                              :refunded_at => Time.now,
-                              :refund_transaction_id => result[:id],
-                              :state => "refunded",
-                              :refund_type => refund_type
-                            })
-      result = ::PaypalServices::Response::openstruct_to_hash(response)[:result]
-      return Response.new(true, nil, {:id => result[:id]})
+
+      sale(request, params, payment.source, "Refund", {refund_type: refund_type})
+    end
+
+    private
+
+    def sale(request, body, checkout, payment_action, options = {})
+      result = ::PaypalServices::Request.request_paypal(provider, request, body)
+      binding.pry
+      if result[:status] == "COMPLETED" || result[:status] == "VOIDED"
+        if payment_action == "Sale"
+          transaction_id = result[:purchase_units].first[:payments][:captures].first[:id]
+          checkout.update_columns(transaction_id: transaction_id, state: "COMPLETED")
+          return Response.new(true, nil, {:id => transaction_id})
+        elsif payment_action == "Refund"
+          checkout.update({
+            :refunded_at => Time.now,
+            :refund_transaction_id => result[:id],
+            :state => "REFUNDED",
+            :refund_type => options[:refund_type]
+          })
+          return Response.new(true, nil, {:id => result[:id]})
+        elsif payment_action == "Capture"
+          new_transaction_id = result[:id]
+          checkout.update(state: 'COMPLETED', transaction_id: new_transaction_id)
+          return Response.new(true, nil, {:id => new_transaction_id})
+        elsif payment_action == "Authorization"
+          authorization_id = result[:purchase_units].first[:payments][:authorizations].first[:id]
+          checkout.update(state: 'AUTHORIZED', transaction_id: authorization_id)
+          return Response.new(true, nil, {:id => authorization_id})
+        elsif payment_action == "Void"
+          authorization_id = result[:id]
+          checkout.update(state: 'VOIDED')
+          return Response.new(true, nil, {:id => authorization_id})
+        end
+        
+      else
+        class << result
+          def to_s
+            errors.map(&:long_message).join(" ")
+          end
+        end
+        Response.new(false, result, nil)
+      end
     end
   end
 end

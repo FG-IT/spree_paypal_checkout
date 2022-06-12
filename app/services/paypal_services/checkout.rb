@@ -17,33 +17,15 @@ module PaypalServices
     end
 
     def update_paypal_order
-      request = ::PayPalCheckoutSdk::Orders::OrdersPatchRequest::new(@order.paypal_checkout.token)
-      result = ::PaypalServices::Request.request_paypal(@provider, request, paypal_order_info)
-    end
-
-    def paypal_order_payer_info
-      {
-        "payer": { 
-          "name": {
-            "given_name": "John",
-            "surname": "Doe"
-          },
-          "email_address": "befruitful12@gmail.com",
-          "phone": {
-            "phone_number": {
-              "national_number": "9874563210"
-            }
-          },
-          "address": {
-            "address_line_1": "10, east street",
-            "address_line_2": "second building",
-            "admin_area_2": "Mumbai",
-            "admin_area_1": "Maharashtra",
-            "postal_code": "400029",
-            "country_code": "IN"
-          }
-        }
-      }
+      begin
+        request = ::PayPalCheckoutSdk::Orders::OrdersPatchRequest::new(@order.paypal_checkout.token)
+        result = ::PaypalServices::Request.request_paypal(@provider, request, paypal_order_info)
+      rescue PayPalHttp::HttpError => ioe
+        # Exception occured while processing the refund.
+        puts " Status Code: #{ioe.status_code}"
+        puts " Debug Id: #{ioe.result.debug_id}"
+        puts " Response: #{ioe.result}"
+      end
     end
 
     def paypal_order_request_info
@@ -80,23 +62,38 @@ module PaypalServices
     end
 
     def paypal_order_info
-      [{
+      paypal_order_info = [{
         "op": "replace",
         "path": "/purchase_units/@reference_id=='default'/amount",
         "value": paypal_order_request_info[:purchase_units].first[:amount]
       }]
+
+      if paypal_order_request_info[:purchase_units].first[:shipping].present?
+        paypal_order_info = paypal_order_info + [
+        {
+          "op": "replace",
+          "path": "/purchase_units/@reference_id=='default'/shipping/address",
+          "value": paypal_order_request_info[:purchase_units].first[:shipping][:address]
+        },
+        {
+          "op": "replace",
+          "path": "/purchase_units/@reference_id=='default'/shipping/name",
+          "value": paypal_order_request_info[:purchase_units].first[:shipping][:name]
+        }]
+      end
+      paypal_order_info
     end
 
     def add_shipping_address_from_paypal(result, permitted_attributes)
       if @order.ship_address.blank?
         address = result[:purchase_units].first[:shipping][:address]
-        name = result[:purchase_units].first[:shipping][:name]
+        name = result[:purchase_units].first[:shipping][:name][:full_name]
         country_id = ::Spree::Country.find_by(iso: address[:country_code]).id
         state_id = ::Spree::State.where({abbr: address[:admin_area_1], country_id: country_id}).first.id
 
         address_params = {
-          firstname: result[:payer][:name][:given_name], 
-          lastname: result[:payer][:name][:surname], 
+          firstname: name.split.first, 
+          lastname: name.split.last,
           address1: address[:address_line_1],
           address2: address[:address_line_2],
           city: address[:admin_area_2], 
@@ -132,16 +129,17 @@ module PaypalServices
     end
 
     def paypal_order_params(intent, return_url, cancel_url, brand_name, user_action)
-      {
+      paypal_order_params = {
         intent: intent,
         application_context: {
           return_url: return_url,
           cancel_url: cancel_url,
           brand_name: brand_name,
           user_action: user_action,
-          shipping_preference: @order.ship_address.present? ? :SET_PROVIDED_ADDRESS : nil
+          shipping_preference: @order.ship_address.present? ? :SET_PROVIDED_ADDRESS : :GET_FROM_FILE
         }
-      }.merge(paypal_order_request_info)
+      }
+      paypal_order_params.merge(paypal_order_request_info)
     end
 
     def complete_with_paypal_checkout(token, payer_id, payment_method)
