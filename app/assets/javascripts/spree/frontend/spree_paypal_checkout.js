@@ -47,12 +47,10 @@ document.addEventListener('turbolinks:load', function () {
     var paymentMethod = SpreePaypalCheckout.checkedPaymentMethod();
     if (SpreePaypalCheckout.paymentMethodID && SpreePaypalCheckout.paymentMethodID == paymentMethod.val()) {
       let order_id = $("#checkout_form_payment form").attr("id").split("_").pop()
-      let payment_method_id = $("#paypal_payment_method").attr("data-payment-method-id")
 
       formData = {
         "paypal_action": "PAY_NOW",
-        "order_id": order_id,
-        "payment_method_id": payment_method_id
+        "order_id": order_id
       }
 
       fetch("/paypal_checkout/create_paypal_order", {
@@ -61,7 +59,7 @@ document.addEventListener('turbolinks:load', function () {
           'X-CSRF-Token': $('meta[name="csrf-token"]').attr('content'),
           'Content-Type': 'application/json'
         },
-        body: formData
+        body: JSON.stringify(formData)
       }).then(response => response.json())
       .then((data) => {
         window.location.replace(data.redirect)
@@ -71,3 +69,53 @@ document.addEventListener('turbolinks:load', function () {
     }
   })
 })
+
+paypal
+  .Buttons({
+    // Sets up the transaction when a payment button is clicked
+    style: {
+      layout: 'horizontal',
+      color:  'gold',
+      shape:  'rect',
+      label:  'paypal',
+      tagline: false
+    },
+    createOrder: function (data, actions) {
+      let order_id = $("#checkout_form_address form").attr("id").split("_").pop()
+      
+      formData = {
+        "paypal_action": "CONTINUE",
+        "order_id": order_id
+      }
+
+      return fetch("/paypal_checkout/create_paypal_order", {
+        method: 'POST',
+        headers: {
+          'X-CSRF-Token': $('meta[name="csrf-token"]').attr('content'),
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(formData)
+      }).then(response => response.json())
+        .then((data) => data.token);
+    },
+    // Finalize the transaction after payer approval
+    onApprove: function (data, actions) {
+      let order_id = $("#checkout_form_address form").attr("id").split("_").pop()
+      paypalOrderData = {
+        "data": data,
+        "order_id": order_id
+      }
+      fetch("/paypal_checkout/add_shipping_address", {
+        method: 'POST',
+        headers: {
+          'X-CSRF-Token': $('meta[name="csrf-token"]').attr('content'),
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(paypalOrderData)
+      }).then(response => response.json())
+        .then((data) => {
+          window.location.href =  data.redirect
+        })
+    }
+  })
+  .render("#paypal-button-container");

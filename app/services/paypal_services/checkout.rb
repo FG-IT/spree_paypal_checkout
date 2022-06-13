@@ -18,15 +18,8 @@ module PaypalServices
     end
 
     def update_paypal_order
-      begin
-        request = ::PayPalCheckoutSdk::Orders::OrdersPatchRequest::new(@order.paypal_checkout.token)
-        result = ::PaypalServices::Request.request_paypal(@provider, request, paypal_order_info)
-      rescue PayPalHttp::HttpError => ioe
-        # Exception occured while processing the refund.
-        puts " Status Code: #{ioe.status_code}"
-        puts " Debug Id: #{ioe.result.debug_id}"
-        puts " Response: #{ioe.result}"
-      end
+      request = ::PayPalCheckoutSdk::Orders::OrdersPatchRequest::new(@order.paypal_checkout.token)
+      result = ::PaypalServices::Request.request_paypal(@provider, request, paypal_order_info)
     end
 
     def paypal_order_request_info

@@ -1,0 +1,19 @@
+<% if @order.state == "address" %>
+  <div>
+    <div class="express-checkout">
+      <div class="express-checkout_title">
+        Express checkout
+      </div>
+      <div class="express-checkout_content">
+        <div id='paypal_payment_method' >
+          <div id="paypal-button-container"></div>
+        </div>
+      </div>
+    </div>
+    <div class="alternative-payment-separator" data-alternative-payment-separator="">
+      <span class="alternative-payment-separator__content">
+        OR
+      </span>
+    </div>
+  </div>
+<% end %>

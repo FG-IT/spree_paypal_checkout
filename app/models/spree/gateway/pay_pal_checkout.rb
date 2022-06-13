@@ -30,7 +30,13 @@ module Spree
 
     def authorize(amount, checkout, gateway_options = {})
       request = ::PayPalCheckoutSdk::Orders::OrdersAuthorizeRequest::new(checkout.token)
-      sale(request, nil, checkout, "Authorization", gateway_options)
+      response = ::PaypalServices::Request.request_paypal(provider, request)
+      if response.success?
+        transaction_id = response.result[:purchase_units].first[:payments][:authorizations].first[:id]
+        checkout.update(state: :AUTHORIZED, transaction_id: transaction_id)
+        response.update_authorization(transaction_id)
+      end
+      response
     end
 
     def settle(amount, checkout, gateway_options) end
@@ -39,12 +45,25 @@ module Spree
       payment_id = gateway_options[:order_id].split('-')[-1]
       payment = Spree::Payment.find_by(number: payment_id)
       request = ::PayPalCheckoutSdk::Payments::AuthorizationsCaptureRequest::new(payment.source.transaction_id)
-      sale(request, nil, payment.source, "Capture", gateway_options)
+      response = ::PaypalServices::Request.request_paypal(provider, request)
+      
+      if response.success?
+        transaction_id = response.result[:id]
+        payment.source.update(state: :COMPLETED, transaction_id: transaction_id)   
+        response.update_authorization(transaction_id) 
+      end
+      response
     end
 
     def purchase(amount, checkout, gateway_options = {})
       request = ::PayPalCheckoutSdk::Orders::OrdersCaptureRequest::new(checkout.token)
-      sale(request, nil, checkout, "Sale", gateway_options)
+      response = ::PaypalServices::Request.request_paypal(provider, request)
+      if response.success?
+        transaction_id = response.result[:purchase_units].first[:payments][:captures].first[:id]
+        checkout.update_columns(transaction_id: transaction_id, state: :COMPLETED)
+        response.update_authorization(transaction_id)
+      end
+      response
     end
 
     def credit(credit_cents, transaction_id, _options)
@@ -73,7 +92,16 @@ module Spree
         source = Spree::PaypalCheckout.find_by(transaction_id: response_code)
       end
       request = ::PayPalCheckoutSdk::Payments::AuthorizationsVoidRequest::new(source.transaction_id)
-      sale(request, nil, source, "Void", gateway_options)
+      response = ::PaypalServices::Request.request_paypal(provider, request)
+      
+      if response.success?
+        transaction_id = response.result[:id]
+        source.update(state: :VOIDED)
+        response.update_authorization(transaction_id)
+      end
+
+      response
+
     end
 
     def refund(capture_id, payment, credit_cents)
@@ -91,55 +119,19 @@ module Spree
       }
       logger.info params
 
-      sale(request, params, payment.source, "Refund", {refund_type: refund_type})
-    end
+      response = ::PaypalServices::Request.request_paypal(provider, request)
 
-    private
-
-    def action_state
-      {
-        Sale: :COMPLETED,
-        Refund: :REFUNDED,
-        Capture: :COMPLETED,
-        Authorization: :AUTHORIZED,
-        Void: :VOIDED
-      }
-    end
-
-    def sale(request, body, checkout, payment_action, options = {})
-      result = ::PaypalServices::Request.request_paypal(provider, request, body)
-      if result[:status] == "COMPLETED" || result[:status] == "VOIDED"
-        if payment_action == "Sale"
-          transaction_id = result[:purchase_units].first[:payments][:captures].first[:id]
-          checkout.update_columns(transaction_id: transaction_id, state: action_state[payment_action.to_sym])
-        elsif payment_action == "Refund"
-          transaction_id = result[:id]
-          checkout.update({
-            :refunded_at => Time.now,
-            :refund_transaction_id => transaction_id,
-            :state => action_state[payment_action.to_sym],
-            :refund_type => options[:refund_type]
-          })
-        elsif payment_action == "Capture"
-          transaction_id = result[:id]
-          checkout.update(state: action_state[payment_action.to_sym], transaction_id: transaction_id)
-        elsif payment_action == "Authorization"
-          transaction_id = result[:purchase_units].first[:payments][:authorizations].first[:id]
-          checkout.update(state: action_state[payment_action.to_sym], transaction_id: transaction_id)
-        elsif payment_action == "Void"
-          transaction_id = result[:id]
-          checkout.update(state: action_state[payment_action.to_sym])
-        end
-
-        return Response.new(true, nil, {:id => transaction_id})
-      else
-        class << result
-          def to_s
-            errors.map(&:long_message).join(" ")
-          end
-        end
-        Response.new(false, result, nil)
+      if response.success?
+        transaction_id = response.result[:id]
+        payment.source.update({
+          :refunded_at => Time.now,
+          :refund_transaction_id => transaction_id,
+          :state => :REFUNDED,
+          :refund_type => options[:refund_type]
+        })
+        response.update_authorization(transaction_id)
       end
+      response
     end
   end
 end

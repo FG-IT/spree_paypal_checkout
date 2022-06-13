@@ -5,7 +5,7 @@ module PaypalServices
         request.headers["prefer"] = "return=representation"
         request.request_body(body) if body.present?
         response = provider.execute(request)
-        ::PaypalServices::Response::openstruct_to_hash(response.result) if response.result.present?
+        ::PaypalServices::Response.new(response)
       end
     end
   end

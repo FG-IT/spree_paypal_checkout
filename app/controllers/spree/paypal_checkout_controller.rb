@@ -6,8 +6,8 @@ module Spree
       paypal_order_id = params[:data]["orderID"]
       request = ::PayPalCheckoutSdk::Orders::OrdersGetRequest.new(paypal_order_id)
       paypal = paypal_checkout(order, provider)
-      result = ::PaypalServices::Request.request_paypal(provider, request)
-      if paypal.add_shipping_address_from_paypal(result, permitted_checkout_attributes)
+      response = ::PaypalServices::Request.request_paypal(provider, request)
+      if paypal.add_shipping_address_from_paypal(response.result, permitted_checkout_attributes)
         render json: { redirect:  spree.checkout_state_path(order.state) }, status: :ok
       else
         flash[:error] = order.errors.full_messages.join("\n")
@@ -60,11 +60,11 @@ module Spree
           intent = payment_method.auto_capture? ? "CAPTURE" : "AUTHORIZE"
           body = paypal.paypal_order_params(intent, confirm_paypal_checkout_url(payment_method_id: params[:payment_method_id], utm_nooverride: 1), cancel_paypal_checkout_url, 'EVERYMARKET INC', params[:paypal_action])
           request = ::PayPalCheckoutSdk::Orders::OrdersCreateRequest::new
-          result = ::PaypalServices::Request.request_paypal(provider, request, body)
+          response = ::PaypalServices::Request.request_paypal(provider, request, body)
           if params[:paypal_action] == 'PAY_NOW'
-            render json: { redirect: get_approve_url(result[:links]) }, status: :ok
+            render json: { redirect: get_approve_url(response.result[:links]) }, status: :ok
           else
-            render json: { token: result[:id] }, status: :ok
+            render json: { token: response.result[:id] }, status: :ok
           end
         end
       rescue PayPalHttp::HttpError => ioe
@@ -95,7 +95,7 @@ module Spree
     end
 
     def payment_method
-      Spree::PaymentMethod.find(params[:payment_method_id])
+      Spree::PaymentMethod.find_by(type: "Spree::Gateway::PayPalCheckout")
     end
   end
 end
