@@ -7,13 +7,14 @@ module PaypalServices
     end
 
     def paypal_order_valid?
-      begin
-        request = ::PayPalCheckoutSdk::Orders::OrdersGetRequest::new(@order.paypal_checkout.token)
-        result = ::PaypalServices::Request.request_paypal(@provider, request)
-        return true
-      rescue PayPalHttp::HttpError => ioe
-        return false
-      end
+      Time.now < @order.paypal_checkout.order_valid_time ? true : false
+      # begin
+      #   request = ::PayPalCheckoutSdk::Orders::OrdersGetRequest::new(@order.paypal_checkout.token)
+      #   result = ::PaypalServices::Request.request_paypal(@provider, request)
+      #   return true
+      # rescue PayPalHttp::HttpError => ioe
+      #   return false
+      # end
     end
 
     def update_paypal_order
@@ -84,6 +85,14 @@ module PaypalServices
       paypal_order_info
     end
 
+    def add_paypal_checkout_record(result)
+      if @order.paypal_checkout.present?
+        @order.paypal_checkout.update!(token: result[:id], state: result[:status], payer_id: result[:payer][:payer_id], order_valid_time: Time.now + 2*60*60)
+      else
+        @order.create_paypal_checkout(token: result[:id], state: result[:status], payer_id: result[:payer][:payer_id], order_valid_time: Time.now + 2*60*60)
+      end
+    end
+
     def add_shipping_address_from_paypal(result, permitted_attributes)
       if @order.ship_address.blank?
         address = result[:purchase_units].first[:shipping][:address]
@@ -120,11 +129,7 @@ module PaypalServices
         @order.update_from_params(_params, permitted_attributes)
       end
       @order.update_column(:state, "address")
-      if @order.paypal_checkout.present?
-        @order.paypal_checkout.update!(token: result[:id], state: result[:status], payer_id: result[:payer][:payer_id])
-      else
-        @order.create_paypal_checkout(token: result[:id], state: result[:status], payer_id: result[:payer][:payer_id])
-      end
+      add_paypal_checkout_record(result)
       @order.next
     end
 

@@ -62,6 +62,7 @@ module Spree
           request = ::PayPalCheckoutSdk::Orders::OrdersCreateRequest::new
           result = ::PaypalServices::Request.request_paypal(provider, request, body)
           if params[:paypal_action] == 'PAY_NOW'
+            paypal.add_paypal_checkout_record(result)
             render json: { redirect: get_approve_url(result[:links]) }, status: :ok
           else
             render json: { token: result[:id] }, status: :ok

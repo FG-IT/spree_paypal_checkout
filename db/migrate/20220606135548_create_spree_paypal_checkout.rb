@@ -10,6 +10,7 @@ class CreateSpreePaypalCheckout < ActiveRecord::Migration[6.1]
       t.datetime :refunded_at
       t.string :refund_type
       t.datetime :created_at
+      t.datetime :order_valid_time
 
       t.index [:order_id], name: "index_spree_paypal_checkouts_on_order_id"
       t.index [:transaction_id], name: "index_spree_paypal_checkouts_on_transaction_id"
