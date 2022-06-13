@@ -1,10 +1,10 @@
-module SpreePaypal
+module SpreePaypalCheckout
   module Generators
     class InstallGenerator < Rails::Generators::Base
       class_option :migrate, type: :boolean, default: true
 
       def add_migrations
-        run 'bundle exec rake railties:install:migrations FROM=spree_paypal_express'
+        run 'bundle exec rake railties:install:migrations FROM=spree_paypal_checkout'
       end
 
       def run_migrations

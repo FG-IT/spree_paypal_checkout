@@ -149,7 +149,7 @@ module PaypalServices
 
     def complete_with_paypal_checkout(token, payer_id, payment_method)
       @order.payments.create!({
-        source: Spree::PaypalCheckout.create({
+        source: @order.create_paypal_checkout({
                                               token: token,
                                               payer_id: payer_id
                                             }),
