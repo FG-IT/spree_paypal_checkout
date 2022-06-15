@@ -4,9 +4,9 @@ include PayPalCheckoutSdk::Orders
 
 module OrdersHelper
   class << self
-    def create_order
+    def create_order(intent = 'CAPTURE')
       body = {
-        intent: 'CAPTURE',
+        intent: intent,
         purchase_units: [{
                           reference_id: 'test_ref_id1',
                           amount: {
