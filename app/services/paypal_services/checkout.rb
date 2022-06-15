@@ -7,7 +7,11 @@ module PaypalServices
     end
 
     def paypal_order_valid?
-      Time.now < @order.paypal_checkout.order_valid_time ? true : false
+      if @order.paypal_checkout.order_valid_time.present?
+        Time.now < @order.paypal_checkout.order_valid_time ? true : false
+      else
+        false
+      end
       # begin
       #   request = ::PayPalCheckoutSdk::Orders::OrdersGetRequest::new(@order.paypal_checkout.token)
       #   result = ::PaypalServices::Request.request_paypal(@provider, request)

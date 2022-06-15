@@ -3,7 +3,7 @@ module Spree
 
     def add_shipping_address
       order = current_order || Spree::Order.find(params[:order_id]) || raise(ActiveRecord::RecordNotFound)
-      paypal_order_id = params[:data]["orderID"]
+      paypal_order_id = params[:data][:orderID]
       request = ::PayPalCheckoutSdk::Orders::OrdersGetRequest.new(paypal_order_id)
       paypal = paypal_checkout(order, provider)
       response = ::PaypalServices::Request.request_paypal(provider, request)
@@ -26,14 +26,14 @@ module Spree
         session[:order_id] = nil
         redirect_to completion_route(order)
       else
-        redirect_to checkout_state_path(order.state)
+        redirect_to spree.checkout_state_path(order.state)
       end
     end
 
     def cancel
       flash[:notice] = Spree.t('flash.cancel', scope: 'paypal')
       order = current_order || raise(ActiveRecord::RecordNotFound)
-      redirect_to checkout_state_path(order.state, paypal_cancel_token: params[:token])
+      redirect_to spree.checkout_state_path(order.state, paypal_cancel_token: params[:token])
     end
 
     def create_paypal_order
@@ -51,7 +51,7 @@ module Spree
               session[:order_id] = nil
               render json: { redirect: completion_route(order) }, status: :ok
             else
-              render json: { redirect: checkout_state_path(order.state) }, status: :ok
+              render json: { redirect: spree.checkout_state_path(order.state) }, status: :ok
             end
           else
             render json: { token: order.paypal_checkout.token }, status: :ok
@@ -69,7 +69,7 @@ module Spree
         end
       rescue PayPalHttp::HttpError => ioe
         flash[:error] = Spree.t('flash.connection_failed', scope: 'paypal')
-        redirect_to checkout_state_path(:payment)
+        redirect_to spree.checkout_state_path(order.state)
       end 
     end
 
