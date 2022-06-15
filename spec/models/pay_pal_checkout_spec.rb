@@ -9,13 +9,7 @@ include ::PayPalCheckoutSdk::Orders
 
 describe Spree::Gateway::PayPalCheckout do
   let(:gateway) { Spree::Gateway::PayPalCheckout.create!(name: "PayPalCheckout", preferred_paypal_client_id: TestHarness::environment.client_id, preferred_paypal_client_secret: TestHarness::environment.client_secret, preferred_server: "sandbox") }
-  let(:paypal_order_response) {
-    ::PaypalServices::Response.new(OrdersHelper::create_order)
-  }
   context "payment purchase" do
-    let(:paypal_order) {
-      resp = OrdersHelper::create_order
-    }
     let(:order) { Spree::Order.create }
     let(:payment) do
       payment = Spree::Payment.new
@@ -27,40 +21,53 @@ describe Spree::Gateway::PayPalCheckout do
 
     let(:provider) { TestHarness.client }
 
-    before do
-      # resp = OrdersHelper::create_order
-      # puts resp.result.links
-      # name = gets.chomp
-      # payment.source = order.create_paypal_checkout(token: resp.result.id, state: resp.result.status, order_valid_time: Time.now + 2*60*60)
-      # binding.pry
-      authorize_resp = OrdersHelper::create_order("AUTHORIZE")
-      puts authorize_resp.result.links
-      name = gets.chomp
-      payment.source = order.create_paypal_checkout(token: authorize_resp.result.id, state: authorize_resp.result.status, order_valid_time: Time.now + 2*60*60)
-      payment.save
-      binding.pry
-    end
+    context "pay now" do
+      before do
+        resp = OrdersHelper::create_order
+        puts resp.result.links
+        cont = $stdin.gets
+        payment.source = order.create_paypal_checkout(token: resp.result.id, state: resp.result.status, order_valid_time: Time.now + 2*60*60)       
+        payment.save
+      end
 
-    # Test for #11
-    it "purchase" do 
-      expect(lambda { payment.purchase! }).to_not raise_error
-    end
+      it "purchase" do
+        capture_event = payment.purchase!
+        expect(capture_event.amount).to eq(100)
+      end
 
-    it "refund" do 
-      payment.purchase!
-      expect(lambda { response = payment.payment_method.refund(payment.source.transaction_id, payment, 100) }).to_not raise_error
+      it "refund" do 
+        payment.purchase!
+        response = payment.payment_method.refund(payment.source.transaction_id, payment, 100)
+        expect(response.success?).to be_truthy
+        expect(response.result[:amount][:value].to_i).to eq(100)
+      end
     end
+    
+    context "AUTHORIZE" do
+      before do
+        authorize_resp = OrdersHelper::create_order("AUTHORIZE")
+        puts authorize_resp.result.links
+        cont = $stdin.gets
+        payment.source = order.create_paypal_checkout(token: authorize_resp.result.id, state: authorize_resp.result.status, order_valid_time: Time.now + 2*60*60)
+        payment.save
+      end
 
-    it "authorize" do 
-      expect(lambda { payment.authorize! }).to_not raise_error
-    end
+      it "authorize" do 
+        authorize_event = payment.authorize!
+        expect(authorize_event).to be_truthy
+      end
 
-    it "capture" do 
-      expect(lambda { payment.capture! }).to_not raise_error
-    end
+      it "capture" do
+        payment.authorize!
+        capture_event = payment.capture!
+        expect(capture_event).to be_truthy
+      end
 
-    it "void" do 
-      expect(lambda { payment.void_transaction! }).to_not raise_error
+      it "void" do
+        payment.authorize!
+        void = payment.void_transaction!
+        expect(void).to be_truthy
+      end
     end
   end
 end

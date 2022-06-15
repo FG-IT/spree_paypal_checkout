@@ -42,6 +42,32 @@ Simply add this require statement to your spec_helper:
 require 'spree_paypal_checkout/factories'
 ```
 
+
+## PayPal order type
+1. intent: "CAPTURE", "AUTHORIZE"
+2. paypal_action: "CONTINUE", "PAY_NOW"
+3. shipping_preference: "SET_PROVIDED_ADDRESS", "GET_FROM_FILE"
+
+## 流程. 
+1. PayPal Express
+    1. 向 create_paypal_order 发请求创建 paypal order: 参数 paypal_action: "CONTINUE", shipping_preference: "GET_FROM_FILE", 用户 approve 之后，向 add_shipping_address 发请求。取出地址放入订单后创建 paypal_checkout 记录，保存 token(paypal order id), state("APPROVED"), payer_id 和 order_valid_time. 如果用户多次点击paypal express button 则根据paypal checkout 取出 paypal order 只更新总额， 不创建新的 paypal order.
+    2. 最后选择 paypal 付款: 向 create_paypal_order 发请求, 从 paypal_checkout 取出token(paypal order id), 使用最后总额更新 paypal order. 创建 payment, order.next时
+    调用purchase/authorize 发送capture/authorize请求 使用返回结果更新paypal checkout记录
+
+2. 最后直接用paypal付款
+    1. 向 create_paypal_order 发请求, 创建订单, 参数
+    paypal_action: 'PAY_NOW'
+    application_context: {
+        return_url: return_url,
+        cancel_url: cancel_url,
+        user_action: user_action,
+    }
+    (备注: 在paypal express checkout中，用户点击paypal checkout button创建paypal order后页面的跳转由 js sdk 控制)
+
+    2. 用户登录提交表单后 return_url 对应的 controller 为 confirm 创建paypal_checkout payment order.next时调用 purchase/authorize 发送capture/authorize请求 使用返回结果更新paypal checkout记录
+
+
+
 ## Releasing
 
 ```shell
