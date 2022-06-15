@@ -58,7 +58,7 @@ module Spree
           end
         else
           intent = payment_method.auto_capture? ? "CAPTURE" : "AUTHORIZE"
-          body = paypal.paypal_order_params(intent, confirm_paypal_checkout_url(payment_method_id: params[:payment_method_id], utm_nooverride: 1), cancel_paypal_checkout_url, 'EVERYMARKET INC', params[:paypal_action])
+          body = paypal.paypal_order_params(intent, confirm_paypal_checkout_url(payment_method_id: payment_method.id, utm_nooverride: 1), cancel_paypal_checkout_url, 'EVERYMARKET INC', params[:paypal_action])
           request = ::PayPalCheckoutSdk::Orders::OrdersCreateRequest::new
           response = ::PaypalServices::Request.request_paypal(provider, request, body)
           if params[:paypal_action] == 'PAY_NOW'
