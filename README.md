@@ -43,31 +43,49 @@ require 'spree_paypal_checkout/factories'
 ```
 
 
-## PayPal order type
-1. intent: "CAPTURE", "AUTHORIZE"
-2. paypal_action: "CONTINUE", "PAY_NOW"
-3. shipping_preference: "SET_PROVIDED_ADDRESS", "GET_FROM_FILE"
+## PayPal Order Type
+1. `intent: "CAPTURE", "AUTHORIZE"`
+2. `paypal_action: "CONTINUE", "PAY_NOW"`
+3. `shipping_preference: "SET_PROVIDED_ADDRESS", "GET_FROM_FILE"`
 
-## 流程. 
+## Integration Guide 
 1. PayPal Express
-    1. 向 create_paypal_order 发请求创建 paypal order: 参数 paypal_action: "CONTINUE", shipping_preference: "GET_FROM_FILE", 用户 approve 之后，向 add_shipping_address 发请求。取出地址放入订单后创建 paypal_checkout 记录，保存 token(paypal order id), state("APPROVED"), payer_id 和 order_valid_time. 如果用户多次点击paypal express button 则根据paypal checkout 取出 paypal order 只更新总额， 不创建新的 paypal order.
-    2. 最后选择 paypal 付款: 向 create_paypal_order 发请求, 从 paypal_checkout 取出token(paypal order id), 使用最后总额更新 paypal order. 创建 payment, order.next时
-    调用purchase/authorize 发送capture/authorize请求 使用返回结果更新paypal checkout记录
+    1. `post /create_paypal_order`
+    Request Body
+    `{     
+        paypal_action: "CONTINUE", 
+        shipping_preference: "GET_FROM_FILE",
+    }`
+    controller will create paypal order and return token(paypal order id). 
+    
+    2. After user approve
+    `post /add_shipping_address`
+    `params: onApprove -> data`
+    retrieve address and other user infomation from data and add them to order then create new `spree_paypal_checkouts` record(`token` is paypal order id). 
+    
+    
+    3. Complete order by paypal
+    `post /create_paypal_order`
+        1. find paypal order by `spree_paypal_checkouts.token(paypal order id)` and update it by final payment total.
+        2. create new `spree_payments` 
+        3. `order.next` call `Spree::Gateway::PayPalCheckout#purchase/authorize` then update `state`, `transaction_id` of `spree_paypal_checkouts`
 
-2. 最后直接用paypal付款
-    1. 向 create_paypal_order 发请求, 创建订单, 参数
-    paypal_action: 'PAY_NOW'
-    application_context: {
-        return_url: return_url,
-        cancel_url: cancel_url,
-        user_action: user_action,
-    }
-    (备注: 在paypal express checkout中，用户点击paypal checkout button创建paypal order后页面的跳转由 js sdk 控制)
+2. Pay by PayPal directly
+    1. `post /create_paypal_order`
+    Request Body
+    `{
+        paypal_action: 'PAY_NOW',
+        application_context: {
+            return_url: return_url,
+            cancel_url: cancel_url,
+            user_action: user_action
+        }
+    }`
 
-    2. 用户登录提交表单后 return_url 对应的 controller 为 confirm 创建paypal_checkout payment order.next时调用 purchase/authorize 发送capture/authorize请求 使用返回结果更新paypal checkout记录
-
-
-
+    2. After user approve, it will `get /paypal_checkout/confirm`.
+        1. create `spree_paypal_checkouts` and `spree_payments` new record. 
+        2. `order.next` call `Spree::Gateway::PayPalCheckout#purchase/authorize` then update `state`, `transaction_id` of `spree_paypal_checkouts`
+        
 ## Releasing
 
 ```shell
