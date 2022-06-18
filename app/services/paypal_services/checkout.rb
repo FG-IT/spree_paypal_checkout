@@ -1,9 +1,10 @@
 module PaypalServices
   class Checkout
+    
 
     def initialize(order, provider)
       @order = order
-      @provider = provider
+      @provider = provider    
     end
 
     def paypal_order_valid?
@@ -163,6 +164,24 @@ module PaypalServices
         payment_method: payment_method
       })
       @order.next
+    end
+    AES_KEY = "\x8BF\x9A\xC0\xDC\x03\x95iU\xFF\xA0:\xCB\xF9\xBB\x12"
+    class << self
+   
+      def aes_encrypt(key, encrypted_string)
+        aes = OpenSSL::Cipher::Cipher.new("AES-128-ECB")
+        aes.encrypt
+        aes.key = Digest::MD5.hexdigest(key).first(16)
+        txt = aes.update(encrypted_string) << aes.final
+        txt.unpack('H*')[0].upcase
+      end
+
+      def aes_dicrypt(key, dicrypted_string)
+        aes = OpenSSL::Cipher::Cipher.new("AES-128-ECB")
+        aes.decrypt
+        aes.key = Digest::MD5.hexdigest(key).first(16)
+        aes.update([dicrypted_string].pack('H*')) << aes.final
+      end
     end
   end
 end

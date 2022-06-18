@@ -9,7 +9,7 @@ module Spree
     end
 
     def method_type
-      'paypal'
+      'paypal_checkout'
     end
 
     def provider_class

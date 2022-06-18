@@ -3,7 +3,7 @@ module SpreePaypalCheckout
 
   module_function
 
-  # Returns the version of the currently loaded SpreePaypal as a
+  # Returns the version of the currently loaded SpreePaypalCheckout as a
   # <tt>Gem::Version</tt>.
   def version
     Gem::Version.new VERSION

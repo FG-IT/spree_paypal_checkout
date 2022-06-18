@@ -1,0 +1,10 @@
+<p>After clicking "Complete order", you will be redirected to PayPal to complete your purchase securely with PayPal account or Credit Cards.</p>
+
+<p>No PayPal account is required. Major credit cards like Visa, MasterCard, Discover, and American Express cards are accepted.</p>
+
+<div id="paypal-image-logo" style="display: none"><%= image_tag("paypal.png") %></div>
+<script>
+  document.addEventListener('turbolinks:load', function () {
+    SpreePaypalCheckout.paymentMethodID = "<%= payment_method.id %>"
+  })
+</script>

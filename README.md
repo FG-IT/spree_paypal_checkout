@@ -1,4 +1,4 @@
-# SpreePaypal
+# SpreePaypalCheckout
 
 Introduction goes here.
 
@@ -23,8 +23,12 @@ Introduction goes here.
     ```
 
 4. Restart your server
+If your server was running, restart it so that it can find the assets properly.
 
-  If your server was running, restart it so that it can find the assets properly.
+5. Add payment method in your admin and choose Spree::Gateway::PayPalCheckout in provider
+
+
+6. Fill Paypal Client, Paypal Client Secret, Server: live
 
 ## Testing
 
@@ -50,7 +54,7 @@ require 'spree_paypal_checkout/factories'
 
 ## Integration Guide 
 1. PayPal Express
-    1. `post /create_paypal_order`
+    1. `post /paypal_checkout/create_paypal_order`
     Request Body
     `{     
         paypal_action: "CONTINUE", 
@@ -59,19 +63,19 @@ require 'spree_paypal_checkout/factories'
     controller will create paypal order and return token(paypal order id). 
     
     2. After user approve
-    `post /add_shipping_address`
+    `post /paypal_checkout/add_shipping_address`
     `params: onApprove -> data`
     retrieve address and other user infomation from data and add them to order then create new `spree_paypal_checkouts` record(`token` is paypal order id). 
     
     
     3. Complete order by paypal
-    `post /create_paypal_order`
+    `post /paypal_checkout/create_paypal_order`
         1. find paypal order by `spree_paypal_checkouts.token(paypal order id)` and update it by final payment total.
         2. create new `spree_payments` 
         3. `order.next` call `Spree::Gateway::PayPalCheckout#purchase/authorize` then update `state`, `transaction_id` of `spree_paypal_checkouts`
 
 2. Pay by PayPal directly
-    1. `post /create_paypal_order`
+    1. `post /paypal_checkout/create_paypal_order`
     Request Body
     `{
         paypal_action: 'PAY_NOW',

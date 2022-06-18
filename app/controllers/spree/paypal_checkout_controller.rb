@@ -16,17 +16,23 @@ module Spree
     end
 
     def confirm
-      order = current_order || raise(ActiveRecord::RecordNotFound)
-      paypal = paypal_checkout(order, provider)
-      paypal.complete_with_paypal_checkout(params[:token], params[:PayerID], payment_method)
+      if params[param_key_order].present?
+        param_value_order = ::PaypalServices::Checkout.aes_dicrypt(aes_key, params[param_key_order])
 
-      if order.complete?
-        flash.notice = Spree.t(:order_processed_successfully)
-        flash[:order_completed] = true
-        session[:order_id] = nil
-        redirect_to completion_route(order)
+        order = Spree::Order.find(param_value_order) || raise(ActiveRecord::RecordNotFound)
+        paypal = paypal_checkout(order, provider)
+        paypal.complete_with_paypal_checkout(params[:token], params[:PayerID], payment_method)
+
+        if order.complete?
+          flash.notice = Spree.t(:order_processed_successfully)
+          flash[:order_completed] = true
+          session[:order_id] = nil
+          redirect_to completion_route(order)
+        else
+          redirect_to spree.checkout_state_path(order.state)
+        end
       else
-        redirect_to spree.checkout_state_path(order.state)
+        redirect_to spree.root_path
       end
     end
 
@@ -37,28 +43,28 @@ module Spree
     end
 
     def create_paypal_order
-      order = current_order || Spree::Order.find(params[:order_id]) || raise(ActiveRecord::RecordNotFound)
-      paypal = paypal_checkout(order, provider)
+      @order = current_order || Spree::Order.find(params[:order_id]) || raise(ActiveRecord::RecordNotFound)
+      paypal = paypal_checkout(@order, provider)
       
       begin
-        if order.paypal_checkout.present? && paypal.paypal_order_valid?          
+        if @order.paypal_checkout.present? && paypal.paypal_order_valid?          
           paypal.update_paypal_order
           if params[:paypal_action] == 'PAY_NOW'
             paypal.complete_with_paypal_express_payment(payment_method)
-            if order.complete?
+            if @order.complete?
               flash.notice = Spree.t(:order_processed_successfully)
               flash[:order_completed] = true
               session[:order_id] = nil
-              render json: { redirect: completion_route(order) }, status: :ok
+              render json: { redirect: completion_route(@order) }, status: :ok
             else
-              render json: { redirect: spree.checkout_state_path(order.state) }, status: :ok
+              render json: { redirect: spree.checkout_state_path(@order.state) }, status: :ok
             end
           else
-            render json: { token: order.paypal_checkout.token }, status: :ok
+            render json: { token: @order.paypal_checkout.token }, status: :ok
           end
         else
           intent = payment_method.auto_capture? ? "CAPTURE" : "AUTHORIZE"
-          body = paypal.paypal_order_params(intent, confirm_paypal_checkout_url(payment_method_id: payment_method.id, utm_nooverride: 1), cancel_paypal_checkout_url, 'EVERYMARKET INC', params[:paypal_action])
+          body = paypal.paypal_order_params(intent, confirm_paypal_checkout, cancel_paypal_checkout_url, 'EVERYMARKET INC', params[:paypal_action])
           request = ::PayPalCheckoutSdk::Orders::OrdersCreateRequest::new
           response = ::PaypalServices::Request.request_paypal(provider, request, body)
           if params[:paypal_action] == 'PAY_NOW'
@@ -69,7 +75,7 @@ module Spree
         end
       rescue PayPalHttp::HttpError => ioe
         flash[:error] = Spree.t('flash.connection_failed', scope: 'paypal')
-        redirect_to spree.checkout_state_path(order.state)
+        redirect_to spree.checkout_state_path(@order.state)
       end 
     end
 
@@ -94,8 +100,21 @@ module Spree
       order_path(order)
     end
 
+    def confirm_paypal_checkout
+      param_value_order = ::PaypalServices::Checkout.aes_encrypt(aes_key, @order.id.to_s)
+      confirm_paypal_checkout_url(utm_nooverride: 1, param_key_order => param_value_order)
+    end
+
     def payment_method
       Spree::PaymentMethod.find_by(type: "Spree::Gateway::PayPalCheckout")
+    end
+
+    def aes_key
+      ::PaypalServices::Checkout::AES_KEY
+    end
+
+    def param_key_order
+      ::PaypalServices::Checkout.aes_encrypt(aes_key, "order")
     end
   end
 end
