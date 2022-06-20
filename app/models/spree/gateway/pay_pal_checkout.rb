@@ -2,7 +2,6 @@ module Spree
   class Gateway::PayPalCheckout < Gateway
     preference :paypal_client_id, :string
     preference :paypal_client_secret, :string
-    preference :server, :string, default: 'sandbox'
 
     def supports?(source)
       true
@@ -17,10 +16,10 @@ module Spree
     end
 
     def environment
-      if preferred_server.present? && preferred_server == "live"
-        ::PayPal::LiveEnvironment.new(preferred_paypal_client_id, preferred_paypal_client_secret)
-      else
+      if preferred_test_mode
         ::PayPal::SandboxEnvironment.new(preferred_paypal_client_id, preferred_paypal_client_secret)
+      else
+        ::PayPal::LiveEnvironment.new(preferred_paypal_client_id, preferred_paypal_client_secret)
       end
     end
 
