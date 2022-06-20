@@ -104,11 +104,11 @@ module Spree
 
     end
 
-    def refund(capture_id, payment, credit_cents)
-      unless capture_id.present?
-        capture_id = payment.source.capture_id
+    def refund(transaction_id, payment, credit_cents)
+      unless transaction_id.present?
+        transaction_id = payment.source.transaction_id
       end
-      request = ::PayPalCheckoutSdk::Payments::CapturesRefundRequest::new(capture_id)
+      request = ::PayPalCheckoutSdk::Payments::CapturesRefundRequest::new(transaction_id)
 
       refund_type = payment.money.amount_in_cents == credit_cents ? "Full" : "Partial"
       params = {
