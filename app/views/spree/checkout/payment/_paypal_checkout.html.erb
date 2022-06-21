@@ -1,10 +1,61 @@
-<p>After clicking "Complete order", you will be redirected to PayPal to complete your purchase securely with PayPal account or Credit Cards.</p>
+<div id="paypal-description">
+  <% if @order.paypal_checkout.present? %>
+    <p> Complete </p>
+  <% else %>
+    <p> After clicking “Complete order”, you will be redirected to PayPal to complete your purchase securely. </p>
+  <% end %>
+</div>
 
-<p>No PayPal account is required. Major credit cards like Visa, MasterCard, Discover, and American Express cards are accepted.</p>
 
 <div id="paypal-image-logo" style="display: none"><%= image_tag("paypal.png") %></div>
 <script>
   document.addEventListener('turbolinks:load', function () {
-    SpreePaypalCheckout.paymentMethodID = "<%= payment_method.id %>"
+    
+    let current_order_id = "<%= @order.number %>"
+    let paymentMethodID = "<%= Spree::PaymentMethod.find_by(type: "Spree::Gateway::PayPalCheckout").id %>"
+
+    let checkedPaymentMethod = function () {
+      return $('div[data-hook="checkout_payment_step"] input[type="radio"][name="order[payments_attributes][][payment_method_id]"]:checked');
+    }
+
+    <% if @order.paypal_checkout.present? %>
+      $('#payment-method-fields .collapse').collapse('hide');
+      $("#paypal-description").parents("div.card").find("input").prop("checked", true);
+    <% end %>
+
+    var paypal_logo_tag = $('#paypal-image-logo')
+    $('div[data-hook="checkout_payment_step"] .payment-option').each(function () {
+      var radio = $(this).find('input[type="radio"][name="order[payments_attributes][][payment_method_id]')
+      console.log(paymentMethodID)
+      if (radio.attr('value') == paymentMethodID) {
+        $(this).find('.spree-radio-label-text').html(paypal_logo_tag.html())
+      }
+    })
+
+    $('#checkout_form_payment').submit(function () {
+      $("#checkout_form_payment [data-hook=buttons] .checkout-content-save-continue-button").attr('disabled', 'disabled')
+      var paymentMethod = checkedPaymentMethod();
+      if (paymentMethodID && paymentMethodID == paymentMethod.val()) {
+        formData = {
+          "paypal_action": "PAY_NOW",
+          "order_id": current_order_id
+        }
+
+        fetch("/paypal_checkout/create_paypal_order", {
+          method: 'POST',
+          headers: {
+            'X-CSRF-Token': $('meta[name="csrf-token"]').attr('content'),
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(formData)
+        }).then(response => response.json())
+        .then((data) => {
+          window.location.replace(data.redirect)
+          }
+        );
+        return false
+      }
+    })
   })
+
 </script>

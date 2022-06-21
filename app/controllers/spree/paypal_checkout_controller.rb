@@ -2,7 +2,7 @@ module Spree
   class PaypalCheckoutController < StoreController
 
     def add_shipping_address
-      order = current_order || Spree::Order.find(params[:order_id]) || raise(ActiveRecord::RecordNotFound)
+      order = current_order || Spree::Order.find_by(number: params[:order_id]) || raise(ActiveRecord::RecordNotFound)
       paypal_order_id = params[:data][:orderID]
       request = ::PayPalCheckoutSdk::Orders::OrdersGetRequest.new(paypal_order_id)
       paypal = paypal_checkout(order, provider)
@@ -18,7 +18,6 @@ module Spree
     def confirm
       if params[param_key_order].present?
         param_value_order = ::PaypalServices::Checkout.aes_dicrypt(aes_key, params[param_key_order])
-
         order = Spree::Order.find(param_value_order) || raise(ActiveRecord::RecordNotFound)
         paypal = paypal_checkout(order, provider)
         paypal.complete_with_paypal_checkout(params[:token], params[:PayerID], payment_method)
@@ -43,7 +42,7 @@ module Spree
     end
 
     def create_paypal_order
-      @order = current_order || Spree::Order.find(params[:order_id]) || raise(ActiveRecord::RecordNotFound)
+      @order = current_order || Spree::Order.find_by(number: params[:order_id]) || raise(ActiveRecord::RecordNotFound)
       paypal = paypal_checkout(@order, provider)
       
       begin
