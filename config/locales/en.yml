@@ -6,3 +6,6 @@ en:
     paypal:
       express_checkout: "Express checkout"
       or: "Or"
+      canpture_due: "Capture before <strong>%{due_time}</strong>"
+      complete: "Complete"
+      redirect: " After clicking “Complete order”, you will be redirected to PayPal to complete your purchase securely."

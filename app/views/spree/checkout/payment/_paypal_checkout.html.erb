@@ -1,8 +1,8 @@
 <div id="paypal-description">
   <% if @order.paypal_checkout.present? %>
-    <p> Complete </p>
+    <p><%= Spree.t('paypal.complete') %></p>
   <% else %>
-    <p> After clicking “Complete order”, you will be redirected to PayPal to complete your purchase securely. </p>
+    <p><%= Spree.t('paypal.redirect') %></p>
   <% end %>
 </div>
 

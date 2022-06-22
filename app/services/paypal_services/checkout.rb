@@ -149,7 +149,8 @@ module PaypalServices
       @order.payments.create!({
         source: @order.create_paypal_checkout({
                                               token: token,
-                                              payer_id: payer_id
+                                              payer_id: payer_id,
+                                              order_valid_time: Time.now + 3.days
                                             }),
         amount: @order.total,
         payment_method: payment_method
@@ -164,8 +165,11 @@ module PaypalServices
         payment_method: payment_method
       })
       @order.next
+      @order.paypal_checkout.update(order_valid_time: Time.now + 3.days)
     end
+
     AES_KEY = "\x8BF\x9A\xC0\xDC\x03\x95iU\xFF\xA0:\xCB\xF9\xBB\x12"
+
     class << self
    
       def aes_encrypt(key, encrypted_string)
