@@ -38,6 +38,12 @@ module Spree
       response
     end
 
+    def authorization_info(checkout)
+      request = ::PayPalCheckoutSdk::Payments::AuthorizationsGetRequest::new(checkout.transaction_id)
+      response = ::PaypalServices::Request.request_paypal(provider, request)
+      response
+    end
+
     def reauthorize(checkout)
       request = ::PayPalCheckoutSdk::Payments::AuthorizationsReauthorizeRequest::new(checkout.transaction_id)
       response = ::PaypalServices::Request.request_paypal(provider, request)
