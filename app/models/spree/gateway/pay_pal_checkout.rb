@@ -38,6 +38,17 @@ module Spree
       response
     end
 
+    def reauthorize(checkout)
+      request = ::PayPalCheckoutSdk::Payments::AuthorizationsReauthorizeRequest::new(checkout.transaction_id)
+      response = ::PaypalServices::Request.request_paypal(provider, request)
+      if response.success?
+        transaction_id = response.result[:id]
+        checkout.update(state: :AUTHORIZED, transaction_id: transaction_id)
+        response.update_authorization(transaction_id)
+      end
+      response
+    end
+
     def settle(amount, checkout, gateway_options) end
 
     def capture(credit_cents, transaction_id, gateway_options)
