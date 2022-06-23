@@ -16,155 +16,55 @@
       </span>
     </div>
   </div>
-  <script>
-  window.addEventListener('DOMContentLoaded', function () {
-    let current_order_id = "<%= @order.number %>"
-    paypal
-    .Buttons({
-      // Sets up the transaction when a payment button is clicked
-      style: {
-        layout: 'horizontal',
-        color:  'gold',
-        shape:  'rect',
-        label:  'paypal',
-        tagline: false
-      },
-      createOrder: function (data, actions) {     
-        formData = {
-          "paypal_action": "CONTINUE",
-          "order_id": current_order_id
-        }
-
-        return fetch("/paypal_checkout/create_paypal_order", {
-          method: 'POST',
-          headers: {
-            'X-CSRF-Token': $('meta[name="csrf-token"]').attr('content'),
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify(formData)
-        }).then(response => response.json())
-          .then((data) => data.token);
-      },
-      // Finalize the transaction after payer approval
-      onApprove: function (data, actions) {
-        paypalOrderData = {
-          "data": data,
-          "order_id": current_order_id
-        }
-        fetch("/paypal_checkout/add_shipping_address", {
-          method: 'POST',
-          headers: {
-            'X-CSRF-Token': $('meta[name="csrf-token"]').attr('content'),
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify(paypalOrderData)
-        }).then(response => response.json())
-          .then((data) => {
-            window.location.href =  data.redirect
-          })
-      }
-    })
-    .render("#paypal-button-container");
-  })
-  </script>
+  <%= render partial: 'spree/shared/paypal_button_js.js' %>
+  <%= stylesheet_link_tag 'paypal_button.css' %>
   <style>
-  .checkout-content_wrap {
-    justify-content: space-between;
-  }
-  .checkout-content_wrap form {
-    width: auto;
-  }
-  .express-checkout_title {
-    font-size: 1em;
-    font-weight: 500;
-    margin: 0;
-    display: -webkit-box;
-    display: -webkit-flex;
-    display: -ms-flexbox;
-    display: flex;
-    width: 100%;
-    -webkit-box-pack: center;
-    -webkit-justify-content: center;
-    -ms-flex-pack: center;
-    justify-content: center;
-    -webkit-box-align: end;
-    -webkit-align-items: flex-end;
-    -ms-flex-align: end;
-    align-items: flex-end;
-    text-align: center;
-  }
-  .express-checkout_title::before {
-    border-right: 0 !important;
-    border-top-left-radius: 5px;
-    margin-right: 1em;
-  }
-  .express-checkout_title::before, .express-checkout_title::after {
-    content: '';
-    border: 1px #e6e6e6 solid;
-    border-bottom: 0;
-    height: 0.5em;
-    -webkit-box-flex: 1;
-    -webkit-flex: 1 0 2em;
-    -ms-flex: 1 0 2em;
-    flex: 1 0 2em;
-  }
-  .express-checkout_title::after {
-    border-left: 0 !important;
-    border-top-right-radius: 5px;
-    margin-left: 1em;
-  }
-  .express-checkout_title::before, .express-checkout_title::after {
-    content: '';
-    border: 1px #e6e6e6 solid;
-    border-bottom: 0;
-    height: 0.5em;
-    -webkit-box-flex: 1;
-    -webkit-flex: 1 0 2em;
-    -ms-flex: 1 0 2em;
-    flex: 1 0 2em;
-  }
-  .express-checkout_content {
-    border: 1px #e6e6e6 solid;
-    border-top: 0;
-    border-bottom-left-radius: 5px;
-    border-bottom-right-radius: 5px;
-    padding: 0.9285714286em 1.4285714286em 1.4285714286em;
-  }
-  .alternative-payment-separator {
-    display: -webkit-box;
-    display: -webkit-flex;
-    display: -ms-flexbox;
-    display: flex;
-    -webkit-box-align: center;
-    -webkit-align-items: center;
-    -ms-flex-align: center;
-    align-items: center;
-    -webkit-box-pack: justify;
-    -webkit-justify-content: space-between;
-    -ms-flex-pack: justify;
-    justify-content: space-between;
-    font-size: 0.8571428571em;
-    line-height: 1.4;
-    text-align: center;
-    text-transform: uppercase;
-    margin: 1.5em 0;
-  }
-  .alternative-payment-separator::after, .alternative-payment-separator::before {
-    content: '';
-    display: inline-block;
-    height: 1px;
-    background-color: #e6e6e6;
-    -webkit-box-flex: 1;
-    -webkit-flex-grow: 1;
-    -ms-flex-positive: 1;
-    flex-grow: 1;
-  }
-  .alternative-payment-separator__content {
-    display: inline-block;
-    padding: 0 1em;
-  }
-  #paypal-button-container iframe.component-frame {
-    z-index: 1 !important;
-  }
+    .express-checkout_title::before {
+      border-right: 0 !important;
+      border-top-left-radius: 5px;
+      margin-right: 1em;
+    }
+    .express-checkout_title::before, .express-checkout_title::after {
+      content: '';
+      border: 1px #e6e6e6 solid;
+      border-bottom: 0;
+      height: 0.5em;
+      -webkit-box-flex: 1;
+      -webkit-flex: 1 0 2em;
+      -ms-flex: 1 0 2em;
+      flex: 1 0 2em;
+    }
+    .express-checkout_title::after {
+      border-left: 0 !important;
+      border-top-right-radius: 5px;
+      margin-left: 1em;
+    }
+    .express-checkout_title::before, .express-checkout_title::after {
+      content: '';
+      border: 1px #e6e6e6 solid;
+      border-bottom: 0;
+      height: 0.5em;
+      -webkit-box-flex: 1;
+      -webkit-flex: 1 0 2em;
+      -ms-flex: 1 0 2em;
+      flex: 1 0 2em;
+    }
+    .express-checkout_content {
+      border: 1px #e6e6e6 solid;
+      border-top: 0;
+      border-bottom-left-radius: 5px;
+      border-bottom-right-radius: 5px;
+      padding: 0.9285714286em 1.4285714286em 1.4285714286em;
+    }
+    .alternative-payment-separator::after, .alternative-payment-separator::before {
+      content: '';
+      display: inline-block;
+      height: 1px;
+      background-color: #e6e6e6;
+      -webkit-box-flex: 1;
+      -webkit-flex-grow: 1;
+      -ms-flex-positive: 1;
+      flex-grow: 1;
+    }
   </style>
 <% end %>

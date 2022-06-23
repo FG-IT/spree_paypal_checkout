@@ -1,0 +1,59 @@
+.checkout-content_wrap {
+  justify-content: space-between;
+}
+
+.checkout-content_wrap form {
+  width: auto;
+}
+
+.express-checkout_title {
+  font-size: 1em;
+  font-weight: 500;
+  margin: 0;
+  display: -webkit-box;
+  display: -webkit-flex;
+  display: -ms-flexbox;
+  display: flex;
+  width: 100%;
+  -webkit-box-pack: center;
+  -webkit-justify-content: center;
+  -ms-flex-pack: center;
+  justify-content: center;
+  -webkit-box-align: end;
+  -webkit-align-items: flex-end;
+  -ms-flex-align: end;
+  align-items: flex-end;
+  text-align: center;
+}
+
+.alternative-payment-separator {
+  display: -webkit-box;
+  display: -webkit-flex;
+  display: -ms-flexbox;
+  display: flex;
+  -webkit-box-align: center;
+  -webkit-align-items: center;
+  -ms-flex-align: center;
+  align-items: center;
+  -webkit-box-pack: justify;
+  -webkit-justify-content: space-between;
+  -ms-flex-pack: justify;
+  justify-content: space-between;
+  font-size: 0.8571428571em;
+  line-height: 1.4;
+  text-align: center;
+  text-transform: uppercase;
+  margin: 1.5em 0;
+}
+
+.alternative-payment-separator__content {
+  display: inline-block;
+  padding: 0 1em;
+}
+
+#paypal-button-container iframe.component-frame {
+  z-index: 1 !important;
+}
+
+
+
