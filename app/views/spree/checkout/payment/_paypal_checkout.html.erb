@@ -11,7 +11,7 @@
 <script>
   document.addEventListener('turbolinks:load', function () {
     
-    let current_order_id = "<%= @order.number %>"
+    let current_spree_order_id = "<%= @order.number %>"
     let paymentMethodID = "<%= Spree::PaymentMethod.find_by(type: "Spree::Gateway::PayPalCheckout").id %>"
 
     let checkedPaymentMethod = function () {
@@ -38,7 +38,7 @@
       if (paymentMethodID && paymentMethodID == paymentMethod.val()) {
         formData = {
           "paypal_action": "PAY_NOW",
-          "order_id": current_order_id
+          "order_id": current_spree_order_id
         }
 
         fetch("/paypal_checkout/create_paypal_order", {
