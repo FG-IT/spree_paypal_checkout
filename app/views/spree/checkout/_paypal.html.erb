@@ -7,9 +7,19 @@
       <div class="express-checkout_content">
         <div id='paypal_payment_method' >
           <div id="paypal-button-container"></div>
+          <div
+            data-pp-message
+            data-pp-style-layout="text"
+            data-pp-style-logo-type="inline"
+            data-pp-style-text-color="black"
+            data-pp-amount="<%= @order.total %>"
+          >
+          </div>
         </div>
       </div>
+      
     </div>
+    
     <div class="alternative-payment-separator" data-alternative-payment-separator="">
       <span class="alternative-payment-separator__content">
         <%= Spree.t('paypal.or') %>
@@ -54,7 +64,7 @@
       border-top: 0;
       border-bottom-left-radius: 5px;
       border-bottom-right-radius: 5px;
-      padding: 0.9285714286em 1.4285714286em 1.4285714286em;
+      padding: 0.7em 1em 0.5em;
     }
     .alternative-payment-separator::after, .alternative-payment-separator::before {
       content: '';
