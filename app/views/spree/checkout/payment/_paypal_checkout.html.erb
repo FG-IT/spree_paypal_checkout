@@ -1,5 +1,5 @@
 <div id="paypal-description">
-  <% if @order.paypal_checkout.present? %>
+  <% if @order.paypal_checkout.present? && paypal.paypal_order_valid? %>
     <p><%= Spree.t('paypal.complete') %></p>
   <% else %>
     <p><%= Spree.t('paypal.redirect') %></p>

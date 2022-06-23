@@ -46,7 +46,7 @@ module Spree
       paypal = paypal_checkout(@order, provider)
       
       begin
-        if @order.paypal_checkout.present? && paypal.paypal_order_valid?          
+        if @order.paypal_checkout.present? && paypal.paypal_order_valid?
           paypal.update_paypal_order
           if params[:paypal_action] == 'PAY_NOW'
             paypal.complete_with_paypal_express_payment(payment_method)
