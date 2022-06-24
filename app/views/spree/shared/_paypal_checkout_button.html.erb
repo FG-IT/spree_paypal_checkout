@@ -6,52 +6,54 @@
   }
 </style>
 <script>
-  let current_order_id = "<%= @order.number %>"
-  paypal
-  .Buttons({
-    // Sets up the transaction when a payment button is clicked
-    style: {
-      layout: 'horizontal',
-      color:  'gold',
-      shape:  'rect',
-      label:  'paypal',
-      tagline: false
-    },
-    createOrder: function (data, actions) {     
-      formData = {
-        "paypal_action": "CONTINUE",
-        "order_id": current_order_id
-      }
+  (function(){
+    let current_order_id = "<%= @order.number %>"
+    paypal
+    .Buttons({
+      // Sets up the transaction when a payment button is clicked
+      style: {
+        layout: 'horizontal',
+        color:  'gold',
+        shape:  'rect',
+        label:  'paypal',
+        tagline: false
+      },
+      createOrder: function (data, actions) {     
+        formData = {
+          "paypal_action": "CONTINUE",
+          "order_id": current_order_id
+        }
 
-      return fetch("/paypal_checkout/create_paypal_order", {
-        method: 'POST',
-        headers: {
-          'X-CSRF-Token': $('meta[name="csrf-token"]').attr('content'),
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(formData)
-      }).then(response => response.json())
-        .then((data) => data.token);
-    },
+        return fetch("/paypal_checkout/create_paypal_order", {
+          method: 'POST',
+          headers: {
+            'X-CSRF-Token': $('meta[name="csrf-token"]').attr('content'),
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(formData)
+        }).then(response => response.json())
+          .then((data) => data.token);
+      },
 
-    onApprove: function (data, actions) {
-      paypalOrderData = {
-        "data": data,
-        "order_id": current_order_id
+      onApprove: function (data, actions) {
+        paypalOrderData = {
+          "data": data,
+          "order_id": current_order_id
+        }
+        fetch("/paypal_checkout/add_shipping_address", {
+          method: 'POST',
+          headers: {
+            'X-CSRF-Token': $('meta[name="csrf-token"]').attr('content'),
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(paypalOrderData)
+        }).then(response => response.json())
+          .then((data) => {
+            window.location.href =  data.redirect
+          })
       }
-      fetch("/paypal_checkout/add_shipping_address", {
-        method: 'POST',
-        headers: {
-          'X-CSRF-Token': $('meta[name="csrf-token"]').attr('content'),
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(paypalOrderData)
-      }).then(response => response.json())
-        .then((data) => {
-          window.location.href =  data.redirect
-        })
-    }
-  })
-  .render("#paypal-button-container");
+    })
+    .render("#paypal-button-container");
+  })()
 </script>
 

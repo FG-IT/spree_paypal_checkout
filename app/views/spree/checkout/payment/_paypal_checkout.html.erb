@@ -1,5 +1,5 @@
 <div id="paypal-description">
-  <% if @order.paypal_checkout.present? && paypal.paypal_order_valid? %>
+  <% if @order.paypal_checkout.present? && Time.now < @order.paypal_checkout.order_valid_time %>
     <p><%= Spree.t('paypal.complete') %></p>
   <% else %>
     <p><%= Spree.t('paypal.redirect') %></p>
@@ -10,7 +10,6 @@
 <div id="paypal-image-logo" style="display: none"><%= image_tag("paypal.png") %></div>
 <script>
   document.addEventListener('turbolinks:load', function () {
-    
     let current_spree_order_id = "<%= @order.number %>"
     let paymentMethodID = "<%= Spree::PaymentMethod.find_by(type: "Spree::Gateway::PayPalCheckout").id %>"
 
@@ -57,5 +56,4 @@
       }
     })
   })
-
 </script>
