@@ -30,7 +30,12 @@ If your server was running, restart it so that it can find the assets properly.
 
 6. Fill Paypal Client, Paypal Client Secret, Server: live
 
-7. Pay Later Text Size: the pay later text size.
+7. 
+    1. Pay Later Text Size: the pay later text size in admin configuration.
+    2. PayPal pay later message in product detail page postion: `div#product-price` in `spree/products/_cart_form`
+    3. PayPal express buttons in cart postion: front of the `[data-hook="cart_buttons"]` in `spree/orders/edit`
+    4. PayPal pay later message in cart postion: after the `<%= render partial: 'summary', locals: {order: @order} %>` in `spree/orders/edit`
+    5. PayPal express buttons in address postion: `[data-hook="checkout_form_wrapper"]` in `spree/checkout/edit`
 
 ## Testing
 
