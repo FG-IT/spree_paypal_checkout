@@ -1,6 +1,6 @@
 <% paypal_payment = Spree::PaymentMethod.find_by(type: "Spree::Gateway::PayPalCheckout") %>
-<% if paypal_payment.auto_capture? %>
-  <script src='<%= "https://www.paypal.com/sdk/js?client-id=#{paypal_payment.preferred_paypal_client_id}&currency=#{ENV['PYAPAL_EXPRESS_CURRENCY']}&commit=false&components=messages,buttons" %>'></script>
+<% if paypal_payment&.auto_capture? %>
+  <script src='<%= "https://www.paypal.com/sdk/js?client-id=#{paypal_payment&.preferred_paypal_client_id}&currency=#{ENV['PYAPAL_EXPRESS_CURRENCY']}&commit=false&components=messages,buttons" %>'></script>
 <% else %>
-  <script src='<%= "https://www.paypal.com/sdk/js?client-id=#{paypal_payment.preferred_paypal_client_id}&currency=#{ENV['PYAPAL_EXPRESS_CURRENCY']}&commit=false&intent=authorize&components=messages,buttons" %>'></script>
+  <script src='<%= "https://www.paypal.com/sdk/js?client-id=#{paypal_payment&.preferred_paypal_client_id}&currency=#{ENV['PYAPAL_EXPRESS_CURRENCY']}&commit=false&intent=authorize&components=messages,buttons" %>'></script>
 <% end %>

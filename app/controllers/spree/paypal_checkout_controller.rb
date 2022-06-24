@@ -62,7 +62,7 @@ module Spree
             render json: { token: @order.paypal_checkout.token }, status: :ok
           end
         else
-          intent = payment_method.auto_capture? ? "CAPTURE" : "AUTHORIZE"
+          intent = payment_method&.auto_capture? ? "CAPTURE" : "AUTHORIZE"
           body = paypal.paypal_order_params(intent, confirm_paypal_checkout, cancel_paypal_checkout_url, 'EVERYMARKET INC', params[:paypal_action])
           request = ::PayPalCheckoutSdk::Orders::OrdersCreateRequest::new
           response = ::PaypalServices::Request.request_paypal(provider, request, body)

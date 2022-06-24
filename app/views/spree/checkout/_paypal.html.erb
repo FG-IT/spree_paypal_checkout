@@ -1,4 +1,4 @@
-<% if @order.state == "address" %>
+<% if @order.state == "address" && ::Spree::PaymentMethod.find_by(type: "Spree::Gateway::PayPalCheckout").present? %>
   <div>
     <div class="express-checkout">
       <div class="express-checkout_title">
@@ -11,7 +11,7 @@
             data-pp-message
             data-pp-placement="payment"
             data-pp-style-layout="text"
-            data-pp-style-text-size="<%= ::Spree::PaymentMethod.find_by(type: "Spree::Gateway::PayPalCheckout").preferred_pay_later_text_size %>"
+            data-pp-style-text-size="<%= ::Spree::PaymentMethod.find_by(type: "Spree::Gateway::PayPalCheckout")&.preferred_pay_later_text_size %>"
             data-pp-style-logo-type="inline"
             data-pp-style-text-color="black"
             data-pp-amount="<%= @order.total %>"
