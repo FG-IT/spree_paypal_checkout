@@ -1,4 +1,4 @@
-<% paypal_payment = Spree::PaymentMethod.find_by(type: "Spree::Gateway::PayPalCheckout") %>
+<% paypal_payment = ::Spree::PaypalCheckout.find_available_on_front_end_paypal_checkout_method %>
 <% if paypal_payment&.auto_capture? %>
   <script data-turbolinks-track="reload" src='<%= "https://www.paypal.com/sdk/js?client-id=#{paypal_payment&.preferred_paypal_client_id}&currency=#{current_store&.default_currency}&commit=false&components=messages,buttons" %>'></script>
 <% else %>
