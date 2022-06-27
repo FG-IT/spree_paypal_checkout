@@ -1,0 +1,31 @@
+<div id='paypal-checkout-warning' style="display:none">
+  <strong><%= Spree.t('no_payment_via_admin_backend', :scope => 'paypal') %></strong>
+</div>
+<script>
+  (function() {
+    var paymentMethodID = "<%= payment_method.id %>"
+    var SpreePaypalCheckout = {
+      hideSettings: function(paymentMethod) {
+        if (paymentMethodID && paymentMethod.val() == paymentMethodID) {
+          $('.payment-method-settings').children().hide();
+          $('#payment_amount').prop('disabled', 'disabled');
+          $('button[type="submit"]').prop('disabled', 'disabled');
+          $('#paypal-warning').show();
+        } else if (paymentMethodID) {
+          $('.payment-method-settings').children().show();
+          $('button[type=submit]').prop('disabled', '');
+          $('#payment_amount').prop('disabled', '')
+          $('#paypal-warning').hide();
+        }
+      }
+    }
+
+    $(document).ready(function() {
+      var checkedPaymentMethod = $('[data-hook="payment_method_field"] input[type="radio"]:checked');
+      SpreePaypalCheckout.hideSettings(checkedPaymentMethod);
+      var paymentMethods = $('[data-hook="payment_method_field"] input[type="radio"]').click(function (e) {
+        SpreePaypalCheckout.hideSettings($(e.target));
+      });
+    })
+  })()
+</script>

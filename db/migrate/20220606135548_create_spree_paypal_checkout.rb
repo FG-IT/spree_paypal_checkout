@@ -5,7 +5,7 @@ class CreateSpreePaypalCheckout < ActiveRecord::Migration[6.1]
       t.string :payer_id
       t.integer :order_id
       t.string :transaction_id
-      t.string :state, :default => "complete"
+      t.string :state, :default => "COMPLETED"
       t.string :refund_transaction_id
       t.datetime :refunded_at
       t.string :refund_type

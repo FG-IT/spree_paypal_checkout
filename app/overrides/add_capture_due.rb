@@ -17,6 +17,8 @@ Deface::Override.new(
     <td>
       <% if @order.paypal_checkout&.state == 'AUTHORIZED' %>
         <%= Spree.t('paypal.canpture_due', due_time: pretty_time(@order.paypal_checkout.order_valid_time)).html_safe %>
+      <% else %>
+        <%= pretty_time(payment.created_at) %>
       <% end %>
     </td>
   EOF
