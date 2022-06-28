@@ -1,0 +1,66 @@
+<% paypal_payment = ::Spree::PaypalCheckout.find_available_on_front_end %>
+<% if paypal_payment.auto_capture? %>
+  <% script_src = "https://www.paypal.com/sdk/js?client-id=#{paypal_payment&.preferred_paypal_client_id}&currency=#{current_store&.default_currency}&commit=false&components=messages,buttons" %>
+<% else %>
+  <% script_src = "https://www.paypal.com/sdk/js?client-id=#{paypal_payment&.preferred_paypal_client_id}&currency=#{current_store&.default_currency}&commit=false&intent=authorize&components=messages,buttons" %>
+<% end %>
+<script>
+  (function(src){
+    var h = document.getElementsByTagName('head')[0];
+    var s = document.createElement('script');
+    s.type = 'text/javascript';
+    s.async = true;
+    s.onload = function() {
+      if (document.querySelector('#paypal-button-container')) {
+        var current_order_id = "<%= @order&.number %>"
+        paypal
+          .Buttons({
+            // Sets up the transaction when a payment button is clicked
+            style: {
+              layout: 'horizontal',
+              color:  'gold',
+              shape:  'rect',
+              label:  'paypal',
+              tagline: false
+            },
+            createOrder: function (data, actions) {     
+              formData = {
+                "paypal_action": "CONTINUE",
+                "order_id": current_order_id
+              }
+
+              return fetch("/paypal_checkout/create_paypal_order", {
+                method: 'POST',
+                headers: {
+                  'X-CSRF-Token': $('meta[name="csrf-token"]').attr('content'),
+                  'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(formData)
+              }).then(response => response.json())
+                .then((data) => data.token);
+            },
+
+            onApprove: function (data, actions) {
+              paypalOrderData = {
+                "data": data,
+                "order_id": current_order_id
+              }
+              fetch("/paypal_checkout/add_shipping_address", {
+                method: 'POST',
+                headers: {
+                  'X-CSRF-Token': $('meta[name="csrf-token"]').attr('content'),
+                  'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(paypalOrderData)
+              }).then(response => response.json())
+                .then((data) => {
+                  window.location.href =  data.redirect
+                })
+            }
+          }).render("#paypal-button-container");
+      }
+    }
+    s.src = src;
+    h.appendChild(s);
+  })('<%= script_src.html_safe %>')
+</script>
