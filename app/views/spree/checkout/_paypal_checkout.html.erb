@@ -7,7 +7,7 @@
       <div class="express-checkout_content">
         <div id='paypal_payment_method' >
           <%= render partial: 'spree/shared/paypal_checkout_button' %>
-          <%= render partial: "spree/shared/paypal_checkout_pay_later", locals: {amount: @order.total} %>
+          <%= render partial: "spree/shared/paypal_checkout_pay_later", locals: {placement: 'payment', amount: @order.total} %>
         </div>
       </div>
     </div>

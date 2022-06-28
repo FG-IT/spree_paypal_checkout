@@ -12,7 +12,7 @@ Deface::Override.new(
   text: <<-EOF
     <% if ::Spree::PaypalCheckout.find_available_on_front_end.present? %>
       <div id="cart-paypal-pay-later">
-        <%= render partial: "spree/shared/paypal_checkout_pay_later", locals: {amount: @order.total} %>
+        <%= render partial: "spree/shared/paypal_checkout_pay_later", locals: {placement: 'cart', amount: @order.total} %>
       </div>
       <style>
         #cart-paypal-pay-later {
