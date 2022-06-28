@@ -1,4 +1,4 @@
-<% if @order.state == "address" && ::Spree::PaypalCheckout.find_available_on_front_end_paypal_checkout_method.present? %>
+<% if @order.state == "address" && ::Spree::PaypalCheckout.find_available_on_front_end.present? %>
   <div>
     <div class="express-checkout">
       <div class="express-checkout_title">

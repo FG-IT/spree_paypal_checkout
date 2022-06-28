@@ -1,7 +1,7 @@
 module Spree
   class PaypalCheckout < ActiveRecord::Base
 
-    def self.find_available_on_front_end_paypal_checkout_method
+    def self.find_available_on_front_end
       Spree::PaymentMethod.available_on_front_end.find_by(type: "Spree::Gateway::PayPalCheckout")
     end
 
