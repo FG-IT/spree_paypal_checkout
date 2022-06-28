@@ -7,16 +7,7 @@
       <div class="express-checkout_content">
         <div id='paypal_payment_method' >
           <%= render partial: 'spree/shared/paypal_checkout_button' %>
-          <div
-            data-pp-message
-            data-pp-placement="payment"
-            data-pp-style-layout="text"
-            data-pp-style-text-size="<%= ::Spree::PaymentMethod.find_by(type: "Spree::Gateway::PayPalCheckout")&.preferred_pay_later_text_size %>"
-            data-pp-style-logo-type="inline"
-            data-pp-style-text-color="black"
-            data-pp-amount="<%= @order.total %>"
-          >
-          </div>
+          <%= render partial: "spree/shared/paypal_checkout_pay_later", locals: {amount: @order.total} %>
         </div>
       </div>
     </div>
@@ -133,4 +124,5 @@
       margin-top: 0 !important;
     }
   </style>
+  <%= render partial: "spree/shared/paypal_checkout_js_sdk" %>
 <% end %>
