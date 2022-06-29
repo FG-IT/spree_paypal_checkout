@@ -3,6 +3,7 @@ module Spree
     preference :paypal_client_id, :string
     preference :paypal_client_secret, :string
     preference :pay_later_text_size, :integer
+    preference :need_tracking, :boolean
 
     def supports?(source)
       true
@@ -36,6 +37,36 @@ module Spree
         checkout.update(state: :AUTHORIZED, transaction_id: transaction_id)
         response.update_authorization(transaction_id)
       end
+      response
+    end
+
+    def upload_tracking(transaction_id, tracking_number, status, carrier)
+      request = ::PayPalCheckoutSdk::TrackingUploadRequest::new
+      trackers = [{
+        transaction_id: transaction_id,
+        status: status,
+        carrier: carrier,
+        tracking_number: tracking_number
+      }]
+      response = ::PaypalServices::Request.request_paypal(provider, request, trackers: trackers)
+      response
+    end
+
+    def update_tracking(transaction_id, tracking_number, status, carrier)
+      request = ::PayPalCheckoutSdk::TrackingUpdateRequest::new(transaction_id, tracking_number)
+      tracker = {
+        transaction_id: transaction_id,
+        status: status,
+        carrier: carrier,
+        tracking_number: tracking_number
+      }
+      response = ::PaypalServices::Request.request_paypal(provider, request, tracker)
+      response
+    end
+
+    def show_tracking(transaction_id, tracking_number)
+      request = ::PayPalCheckoutSdk::TrackingShowRequest::new(transaction_id, tracking_number)
+      response = ::PaypalServices::Request.request_paypal(provider, request)
       response
     end
 
