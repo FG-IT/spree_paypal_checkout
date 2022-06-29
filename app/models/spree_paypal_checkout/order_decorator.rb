@@ -1,4 +1,4 @@
-module Paypal
+module SpreePaypalCheckout
   module OrderDecorator
     def self.prepended(base)
       base.has_one :paypal_checkout, class_name: "Spree::PaypalCheckout"
@@ -6,4 +6,4 @@ module Paypal
   end
 end
 
-::Spree::Order.prepend Paypal::OrderDecorator
+::Spree::Order.prepend SpreePaypalCheckout::OrderDecorator
