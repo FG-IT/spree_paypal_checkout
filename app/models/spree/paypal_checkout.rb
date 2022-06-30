@@ -1,13 +1,10 @@
 module Spree
   class PaypalCheckout < ActiveRecord::Base
 
-    def self.sync_tracking(tracking_number, carrier, status="SHIPPED")
-      self.order.payments.each do |payment|
-        if payment.payment_method.preferred_need_tracking
-          response = payment.payment_method.upload_tracking(payment.source.transaction_id, tracking_number, status, carrier)
-        end
-      end
-    end
+    scope :not_sync, -> { where(tracking_sync: false) }
+    scope :completed, -> { where(state: "COMPLETED") }
+
+    belongs_to :payment, as: :source
 
     def self.find_available_on_front_end
       Spree::PaymentMethod.available_on_front_end.find_by(type: "Spree::Gateway::PayPalCheckout")

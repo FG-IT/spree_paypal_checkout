@@ -10,10 +10,10 @@
 <div id="paypal-image-logo" style="display: none"><%= image_tag("paypal.png") %></div>
 <script>
   document.addEventListener('turbolinks:load', function () {
-    let current_spree_order_id = "<%= @order.number %>"
-    let paymentMethodID = "<%= Spree::PaymentMethod.find_by(type: "Spree::Gateway::PayPalCheckout").id %>"
+    var current_spree_order_id = "<%= @order.number %>"
+    var paymentMethodID = "<%= Spree::PaymentMethod.find_by(type: "Spree::Gateway::PayPalCheckout").id %>"
 
-    let checkedPaymentMethod = function () {
+    var checkedPaymentMethod = function () {
       return $('div[data-hook="checkout_payment_step"] input[type="radio"][name="order[payments_attributes][][payment_method_id]"]:checked');
     }
 

@@ -40,14 +40,9 @@ module Spree
       response
     end
 
-    def upload_tracking(transaction_id, tracking_number, status, carrier)
+    def upload_tracking(trackers)
       request = ::PayPalCheckoutSdk::TrackingUploadRequest::new
-      trackers = [{
-        transaction_id: transaction_id,
-        status: status,
-        carrier: carrier,
-        tracking_number: tracking_number
-      }]
+     
       response = ::PaypalServices::Request.request_paypal(provider, request, trackers: trackers)
       response
     end
