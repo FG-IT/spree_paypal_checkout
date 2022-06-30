@@ -6,21 +6,17 @@ module SpreePaypalCheckout
 
     def sync_tracking_to_paypal_checkout(payment)
       trackers = []
-
-      self.shipments.each do |shipment|
-        if shipment.state == "shipped"
-          trackers << {
-            transaction_id: payment.source.transaction_id,
-            status: shipment.state.upcase,
-            carrier: shipment.carrier.upcase,
-            tracking_number: shipment.tracking
-          }
-        end
+      self.shipments.shipped.each do |shipment|
+        trackers << {
+          transaction_id: payment&.source&.transaction_id,
+          status: shipment.state.upcase,
+          carrier: shipment.carrier.upcase,
+          tracking_number: shipment.tracking
+        }
       end
-
-      response = payment.payment_method.upload_tracking(trackers)
-      if response.success?
-        payment.source.update(tracking_sync: true)
+      if trackers.present?
+        response = payment&.payment_method&.upload_tracking(trackers)
+        payment.source.update(tracking_sync: true) if response&.success?
       end
     end
   end
