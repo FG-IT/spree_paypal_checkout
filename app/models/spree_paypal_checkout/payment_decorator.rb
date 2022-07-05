@@ -1,4 +1,4 @@
-module Paypal
+module SpreePaypalCheckout
   module PaymentDecorator
 
     def cancel!
@@ -38,4 +38,4 @@ module Paypal
   end
 end
 
-::Spree::Payment.prepend Paypal::PaymentDecorator
+::Spree::Payment.prepend SpreePaypalCheckout::PaymentDecorator

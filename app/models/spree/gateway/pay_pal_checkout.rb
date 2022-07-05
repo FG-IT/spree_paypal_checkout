@@ -39,6 +39,31 @@ module Spree
       response
     end
 
+    def upload_tracking(trackers)
+      request = ::PayPalCheckoutSdk::TrackingUploadRequest::new
+     
+      response = ::PaypalServices::Request.request_paypal(provider, request, trackers: trackers)
+      response
+    end
+
+    def update_tracking(transaction_id, tracking_number, status, carrier)
+      request = ::PayPalCheckoutSdk::TrackingUpdateRequest::new(transaction_id, tracking_number)
+      tracker = {
+        transaction_id: transaction_id,
+        status: status,
+        carrier: carrier,
+        tracking_number: tracking_number
+      }
+      response = ::PaypalServices::Request.request_paypal(provider, request, tracker)
+      response
+    end
+
+    def show_tracking(transaction_id, tracking_number)
+      request = ::PayPalCheckoutSdk::TrackingShowRequest::new(transaction_id, tracking_number)
+      response = ::PaypalServices::Request.request_paypal(provider, request)
+      response
+    end
+
     def authorization_info(checkout)
       request = ::PayPalCheckoutSdk::Payments::AuthorizationsGetRequest::new(checkout.transaction_id)
       response = ::PaypalServices::Request.request_paypal(provider, request)
