@@ -41,7 +41,6 @@ module Spree
 
     def upload_tracking(trackers)
       request = ::PayPalCheckoutSdk::TrackingUploadRequest::new
-     
       response = ::PaypalServices::Request.request_paypal(provider, request, trackers: trackers)
       response
     end
