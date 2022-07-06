@@ -28,7 +28,11 @@ module SpreePaypalCheckout
 
     def sync_tracking
       if self.carrier.present? && self.tracking.present?
-        SpreePaypalCheckout::SyncTrackingJob.perform_later(self.id)
+        if Rails.env.production?
+          SpreePaypalCheckout::SyncTrackingJob.perform_later(self.id)
+        else
+          sync_tracking_to_paypal_checkout
+        end
       end
     end
   end
