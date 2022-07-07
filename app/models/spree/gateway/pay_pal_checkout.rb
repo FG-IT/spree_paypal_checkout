@@ -159,7 +159,7 @@ module Spree
         transaction_id = payment.source.transaction_id
       end
       request = ::PayPalCheckoutSdk::Payments::CapturesRefundRequest::new(transaction_id)
-      request.pay_pal_request_id(transaction_id)
+      request.pay_pal_request_id(payment.source.refund_transaction_id || transaction_id)
       refund_type = payment.money.amount_in_cents == credit_cents ? "Full" : "Partial"
       params = {
         :amount => {
@@ -168,8 +168,8 @@ module Spree
         }
       }
       logger.info params
-
-      response = ::PaypalServices::Request.request_paypal(provider, request)
+      
+      response = ::PaypalServices::Request.request_paypal(provider, request, params)
 
       if response.success?
         transaction_id = response.result[:id]
