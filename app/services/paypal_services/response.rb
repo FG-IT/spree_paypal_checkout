@@ -15,7 +15,7 @@ module PaypalServices
     end
 
     def success?
-      if @response.status_code >= 200 and @response.status_code < 300
+      if @response.status_code >= 200 && @response.status_code < 300 && @result[:errors].blank?
         true
       else
         false
