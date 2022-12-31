@@ -3,6 +3,7 @@ module Spree
     preference :paypal_client_id, :string
     preference :paypal_client_secret, :string
     preference :pay_later_text_size, :integer
+    preference :show_in_cart, :boolean
 
     def supports?(source)
       true
