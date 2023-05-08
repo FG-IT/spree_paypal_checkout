@@ -12,7 +12,7 @@
     s.async = true;
     s.onload = function() {
       if (document.querySelector('#paypal-button-container')) {
-        var current_order_id = "<%= @order&.number %>"
+        var current_order_id = "<%= @order&.number %>";
         paypal
           .Buttons({
             // Sets up the transaction when a payment button is clicked
@@ -24,20 +24,61 @@
               tagline: false
             },
             createOrder: function (data, actions) {     
-              formData = {
-                "paypal_action": "CONTINUE",
-                "order_id": current_order_id
-              }
+              if (current_order_id) {
+                formData = {
+                  "paypal_action": "CONTINUE",
+                  "order_id": current_order_id
+                }
+                return fetch("/paypal_checkout/create_paypal_order", {
+                  method: 'POST',
+                  headers: {
+                    'X-CSRF-Token': $('meta[name="csrf-token"]').attr('content'),
+                    'Content-Type': 'application/json'
+                  },
+                  body: JSON.stringify(formData)
+                }).then(response => response.json())
+                  .then((data) => data.token);
+              } else {
+                var variantId = $('input[name="variant_id"]').val();
+                var quantity = $('input[name="quantity"]').val();
+                if (!variantId || !quantity) {
+                  return;
+                }
 
-              return fetch("/paypal_checkout/create_paypal_order", {
-                method: 'POST',
-                headers: {
-                  'X-CSRF-Token': $('meta[name="csrf-token"]').attr('content'),
-                  'Content-Type': 'application/json'
-                },
-                body: JSON.stringify(formData)
-              }).then(response => response.json())
-                .then((data) => data.token);
+                return Spree.ensureCart(function() {
+                  return SpreeAPI.Storefront.addToCart(
+                    variantId,
+                    quantity,
+                    {},
+                    function(response) {
+                      Spree.fetchCart();
+
+                      current_order_id = response.attributes.number;
+                      formData = {
+                        "paypal_action": "CONTINUE",
+                        "order_id": response.attributes.number,
+                      }
+                      return fetch("/paypal_checkout/create_paypal_order", {
+                        method: 'POST',
+                        headers: {
+                          'X-CSRF-Token': $('meta[name="csrf-token"]').attr('content'),
+                          'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify(formData)
+                      }).then(response => response.json())
+                        .then((data) => data.token);
+                    },
+                    function(error) {
+                      if (typeof error === 'string' && error !== '') {
+                          document.querySelector('#no-product-available .no-product-available-text').innerText = error;
+                      }
+                      document.getElementById('overlay').classList.add('shown');
+                      document.getElementById('no-product-available').classList.add('shown');
+                      window.scrollTo(0, 0);
+                    }
+                  )
+                });
+              }
             },
 
             onApprove: function (data, actions) {
