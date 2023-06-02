@@ -1,5 +1,5 @@
 <% paypal_checkout = ::Spree::PaypalCheckout.find_available_on_front_end %>
-<% if @order.state == "address" && paypal_checkout.present? && paypal_checkout.preferred_show_in_cart %>
+<% if @order.state == "address" && paypal_checkout.present? && paypal_checkout['preferences']['show_in_cart'] %>
   <div>
     <div class="express-checkout">
       <div class="express-checkout_title">
