@@ -1,7 +1,7 @@
 <%
   paypal = ::Spree::PaypalCheckout.find_available_on_front_end
   auto_capture = paypal['auto_capture']
-  paypal_client_id = paypal['preferences']['paypal_client_id']
+  paypal_client_id = paypal['preferences'][:paypal_client_id]
 %>
 <% if auto_capture %>
   <% script_src = "https://www.paypal.com/sdk/js?client-id=#{paypal_client_id}&currency=#{current_store&.default_currency}&commit=false&components=messages,buttons" %>
