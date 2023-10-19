@@ -43,7 +43,7 @@ module PaypalServices
             address_line_1: @order.ship_address.address1,
             address_line_2: @order.ship_address.address2,
             admin_area_2: @order.ship_address.city,
-            admin_area_1: @order.ship_address.state.name,
+            admin_area_1: @order.ship_address&.state&.name,
             postal_code: @order.ship_address.zipcode,
             country_code: @order.ship_address.country.iso
           }
@@ -96,7 +96,7 @@ module PaypalServices
         address = result[:purchase_units].first[:shipping][:address]
         name = result[:purchase_units].first[:shipping][:name][:full_name]
         country_id = ::Spree::Country.find_by(iso: address[:country_code]).id
-        state_id = ::Spree::State.where({abbr: address[:admin_area_1], country_id: country_id}).first.id
+        state_id = ::Spree::State.where({abbr: address[:admin_area_1], country_id: country_id}).first&.id
 
         address_params = {
           firstname: name.split.first, 
@@ -146,12 +146,12 @@ module PaypalServices
     end
 
     def complete_with_paypal_checkout(token, payer_id, payment_method)
+      paypal_checkout = ::Spree::PaypalCheckout.find_by(token: token, payer_id: payer_id, order_id: @order.id)
+      if paypal_checkout.blank?
+        paypal_checkout = @order.create_paypal_checkout({token: token, payer_id: payer_id, order_valid_time: Time.now + 3.days})
+      end
       @order.payments.create!({
-        source: @order.create_paypal_checkout({
-                                              token: token,
-                                              payer_id: payer_id,
-                                              order_valid_time: Time.now + 3.days
-                                            }),
+        source: paypal_checkout,
         amount: @order.total,
         payment_method: payment_method
       })

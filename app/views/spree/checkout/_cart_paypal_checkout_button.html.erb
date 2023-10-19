@@ -1,4 +1,5 @@
-<% if ::Spree::PaypalCheckout.find_available_on_front_end.present? %>
+<% paypal_checkout = ::Spree::PaypalCheckout.find_available_on_front_end %>
+<% if paypal_checkout.present? && paypal_checkout['preferences']['show_in_cart'] %>
   <div id="cart-paypal-button">
     <%= render partial: 'spree/shared/paypal_checkout_button' %>
   </div>
