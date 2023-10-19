@@ -2,6 +2,7 @@ module Spree
   class Gateway::PayPalCheckout < Gateway
     preference :paypal_client_id, :string
     preference :paypal_client_secret, :string
+    preference :brand_name, :string
     preference :pay_later_text_size, :integer
     preference :show_in_cart, :boolean
 

@@ -8,10 +8,10 @@ module Spree
       paypal = paypal_checkout(order, provider)
       response = ::PaypalServices::Request.request_paypal(provider, request)
       if paypal.add_shipping_address_from_paypal(response.result, permitted_checkout_attributes)
-        render json: { redirect:  spree.checkout_state_path(order.state) }, status: :ok
+        render json: { redirect: spree.checkout_state_path(order.state) }, status: :ok
       else
         flash[:error] = order.errors.full_messages.join("\n")
-        render json: { redirect:  spree.checkout_state_path(order.state) }, status: :ok
+        render json: { redirect: spree.checkout_state_path(order.state) }, status: :ok
       end
     end
 
@@ -44,7 +44,7 @@ module Spree
     def create_paypal_order
       @order = current_order || Spree::Order.find_by(number: params[:order_id]) || raise(ActiveRecord::RecordNotFound)
       paypal = paypal_checkout(@order, provider)
-      
+
       begin
         if @order.paypal_checkout.present? && paypal.paypal_order_valid?
           paypal.update_paypal_order
@@ -63,9 +63,16 @@ module Spree
           end
         else
           intent = payment_method&.auto_capture? ? "CAPTURE" : "AUTHORIZE"
-          body = paypal.paypal_order_params(intent, confirm_paypal_checkout, cancel_paypal_checkout_url, 'EVERYMARKET INC', params[:paypal_action])
+          body = paypal.paypal_order_params(intent,
+                                            confirm_paypal_checkout,
+                                            cancel_paypal_checkout_url,
+                                            payment_method['preferences'][:brand_name],
+                                            params[:paypal_action])
           request = ::PayPalCheckoutSdk::Orders::OrdersCreateRequest::new
+          Rails.logger.info body
+          Rails.logger.info request.headers
           response = ::PaypalServices::Request.request_paypal(provider, request, body)
+
           if params[:paypal_action] == 'PAY_NOW'
             render json: { redirect: get_approve_url(response.result[:links]) }, status: :ok
           else
@@ -75,7 +82,7 @@ module Spree
       rescue PayPalHttp::HttpError => ioe
         flash[:error] = Spree.t('flash.connection_failed', scope: 'paypal')
         redirect_to spree.checkout_state_path(@order.state)
-      end 
+      end
     end
 
     private
