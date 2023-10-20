@@ -45,7 +45,7 @@ module PaypalServices
         },
         "tax" => {
           currency_code: @order.currency,
-          value: item.additional_tax_total + this_shipping_tax
+          value: (item.additional_tax_total + this_shipping_tax) / item.quantity
         }
       }
 
@@ -79,7 +79,7 @@ module PaypalServices
             },
             discount: {
               currency_code: @order.currency,
-              value: @order.promo_total
+              value: -@order.promo_total
             }
           }
         },
