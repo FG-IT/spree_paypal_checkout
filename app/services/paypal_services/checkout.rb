@@ -41,11 +41,11 @@ module PaypalServices
         "quantity" => item.quantity,
         "unit_amount" => {
           currency_code: @order.currency,
-          value: item.price
+          value: "%.2f" % item.price
         },
         "tax" => {
           currency_code: @order.currency,
-          value: (item.additional_tax_total + this_shipping_tax) / item.quantity
+          value: "%.2f" % ((item.additional_tax_total + this_shipping_tax) / item.quantity)
         }
       }
 
@@ -63,23 +63,23 @@ module PaypalServices
         reference_id: reference,
         amount: {
           currency_code: @order.currency,
-          value: @order.total,
+          value: "%.2f" % @order.total,
           breakdown: {
             item_total: {
               currency_code: @order.currency,
-              value: @order.item_total
+              value: "%.2f" % @order.item_total
             },
             shipping: {
               currency_code: @order.currency,
-              value: @order.shipment_total
+              value: "%.2f" % @order.shipment_total
             },
             tax_total: {
               currency_code: @order.currency,
-              value: @order.additional_tax_total
+              value: "%.2f" % @order.additional_tax_total
             },
             discount: {
               currency_code: @order.currency,
-              value: -@order.promo_total
+              value: "%.2f" % (0 - @order.promo_total)
             }
           }
         },
